@@ -2,6 +2,7 @@
 /* eslint-disable no-restricted-globals */
 
 // Import Dexie Cloud Service Worker
+
 import "dexie-cloud-addon/dist/umd/service-worker";
 
 // This service worker can be customized!

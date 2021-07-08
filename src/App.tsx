@@ -19,6 +19,10 @@ function App() {
     return trees.length >= MAX_TREES;
   }, [trees])
 
+  const login = async () => {
+    const res = await treesDB.cloud.login({ grant_type: 'demo', userId: 'foo@demo.local' })
+    console.log(res);
+  }
   return (
     <div className="app-con">
       <nav>
@@ -26,7 +30,7 @@ function App() {
         <div className="nav-panel">
           <div onClick={() => addTree()} title={`${maxAchived ? `Limited to ${MAX_TREES} trees. Please first delete a tree in order to be able to add another ` : 'Add a new tree'}`} className={`btn primary ${maxAchived ? 'disable' : ""}`}>Add Tree</div>
           <div onClick={() => deleteAllTrees()} className={`btn primary ${!trees?.length ? 'disable' : ""}`}>Delete All Trees</div>
-          <div onClick={async () => await treesDB.cloud.login({ grant_type: 'demo', userId: 'foo@demo.local' })} className={`btn primary ${!trees?.length ? 'disable' : ""}`}>Login</div>
+          {/* <div onClick={login} className={`btn primary ${!trees?.length ? 'disable' : ""}`}>Login</div> */}
         </div>
       </nav>
       <div className="trees-con">
