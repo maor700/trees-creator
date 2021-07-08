@@ -19,10 +19,10 @@ function App() {
     return trees.length >= MAX_TREES;
   }, [trees])
 
-  const login = async () => {
-    const res = await treesDB.cloud.login({ grant_type: 'demo', userId: 'foo@demo.local' })
-    console.log(res);
-  }
+  // const login = async () => {
+  //   const res = await treesDB.cloud.login({ grant_type: 'demo', userId: 'foo@demo.local' })
+  //   console.log(res);
+  // }
   return (
     <div className="app-con">
       <nav>

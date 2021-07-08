@@ -11,7 +11,7 @@ import { EditPanel } from "../EditPanel/EditPanel";
 import "./NodeRow.scss";
 
 export const NodeRow: FC<{ treeItem: TreeItem, childrenItems: TreeItem[] }> = ({ treeItem, childrenItems }) => {
-    const { name, id, treeId, parentPath, selected, } = treeItem;
+    const { name, id, treeId, selected, } = treeItem;
     const [showModal, toggleModal] = useToggle();
     const [showChildren, toggleChildren] = useToggle();
     const [showEditNamePanel, toggleShowEditNamePanel] = useToggle();

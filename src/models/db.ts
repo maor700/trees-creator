@@ -143,7 +143,7 @@ export class TreesDB extends Dexie {
       // else select all
     } else {
       this.treesItems.update(nodeId, { selected: status ?? selected ? 1 : 0 });
-      const [tree, children] =  await this.getRootAndChildren(nodeId);
+      const [tree, children] = await this.getRootAndChildren(nodeId);
     }
   }
 
@@ -187,17 +187,11 @@ export class TreesDB extends Dexie {
   getNodeDescendantsCollection = async (nodeId: string) => {
     const { treeId, parentPath } = await this.treesItems.get(nodeId) ?? {};
     if (!(treeId ?? treeId)) return;
+    /* eslint-disable */
     return await this.treesItems.where(INDEXES.tp).between([treeId, `${parentPath}${nodeId}/`], [treeId, `${parentPath}${nodeId}/` + `\uffff`])
+    /* eslint-disable */
   }
 }
 
 export const treesDB = new TreesDB();
-console.log(treesDB);
-
-// const data = JSON.parse("[{\"treeId\":\"myTree\",\"name\":\"node-1\",\"parentPath\":\"\",\"data\":{\"a\":1,\"b\":2},\"id\":1},{\"treeId\":\"myTree\",\"name\":\"node-2\",\"parentPath\":\"node-1/\",\"data\":{\"a\":1,\"b\":2},\"id\":2},{\"treeId\":\"a\",\"name\":\"b\",\"parentPath\":\"\",\"id\":3},{\"treeId\":\"a\",\"name\":\"maor\",\"parentPath\":\"3/\",\"id\":4},{\"treeId\":\"a\",\"name\":\"elimelech\",\"parentPath\":\"3/4/\",\"id\":5},{\"treeId\":\"a\",\"name\":\"elimelech2\",\"parentPath\":\"3/4/\",\"id\":6},{\"treeId\":\"a\",\"name\":\"elimelech3\",\"parentPath\":\"3/4/\",\"id\":7},{\"treeId\":\"a\",\"name\":\"elimelech4\",\"parentPath\":\"3/4/\",\"id\":8},{\"treeId\":\"a\",\"name\":\"elimelech5\",\"parentPath\":\"3/4/\",\"id\":9}]")
-
-// db.on("populate", async (tn) => {
-//   await db.treesItems.bulkAdd(data)
-// });
-
 
