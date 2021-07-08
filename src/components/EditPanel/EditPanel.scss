@@ -1,0 +1,25 @@
+.tree-con {
+    .edit-panel {
+        display: flex;
+        justify-content: space-between;
+        padding-inline: 0.5em;
+        padding-inline-end: 2em;
+        align-items: center;
+        width: 100%;
+        .btn {
+            padding: 0;
+        }
+    }
+    input.edit-name-input {
+        width: 100%;
+        flex: 80;
+        background: transparent;
+        color: #eee;
+        border: none;
+        outline: none;
+        border-block-end: 1px solid #666;
+        &:focus {
+            border-color: #eee;
+        }
+    }
+}

@@ -1,0 +1,30 @@
+.tree-con {
+    &.light-theme {
+        filter: invert(1) hue-rotate(180deg) brightness(0.7) contrast(3.6);
+    }
+    display: block;
+    flex: 1 1;
+    margin: 0 0.5em;
+    padding: 0.5em;
+    background: #232323;
+    color: #eee;
+    height: 100%;
+    border-radius: 0.5em;
+    width: 0px;
+    min-width: 200px;
+    .head-row {
+        position: relative;
+        h4 {
+            margin: 0 0;
+            /* padding-block-end: 0.5em; */
+            /* border-bottom: 1px solid #4b8062; */
+            width: calc(100% - 2em);
+            font-weight: normal;
+        }
+        .actions-panel {
+            position: relative;
+            display: inline-flex;
+            align-items: center;
+        }
+    }
+}

@@ -1,0 +1,52 @@
+.tree-con {
+    .ul {
+        margin-inline-start: 1em;
+    }
+    .row {
+        position: relative;
+        display: flex;
+        flex-wrap: wrap;
+        padding-inline-start: 0;
+        background: #2d2d2d;
+        color: #eee;
+        margin-block: 0.3em;
+        border-radius: 0.3em;
+        justify-content: space-between;
+        align-items: center;
+        .node-name {
+            position: relative;
+            display: flex;
+            align-items: center;
+            align-content: space-between;
+            flex-wrap: nowrap;
+            width: calc(100% - 2em);
+            white-space: nowrap;
+            padding-inline-end: 1em;
+            .label {
+                text-overflow: ellipsis;
+                white-space: nowrap;
+                overflow: hidden;
+            }
+        }
+        .expand-collaps {
+            font-size: 0.9em;
+            padding: 0.5em;
+            line-height: 0.8em;
+            display: inline-flex;
+        }
+        .checkbox-input {
+            display: none;
+        }
+    }
+    &.multi-select-mode {
+        .checkbox-input {
+            display: inline-block;
+        }
+    }
+    .collapsser-con {
+        background: black;
+        opacity: 0.4;
+        border-radius: 0.3em 0 0 0.3em;
+        margin-inline-end: 0.5em;
+    }
+}
