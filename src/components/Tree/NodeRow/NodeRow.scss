@@ -13,19 +13,22 @@
         border-radius: 0.3em;
         justify-content: space-between;
         align-items: center;
-        .node-name {
-            position: relative;
-            display: flex;
-            align-items: center;
-            align-content: space-between;
-            flex-wrap: nowrap;
-            width: calc(100% - 2em);
-            white-space: nowrap;
-            padding-inline-end: 1em;
-            .label {
-                text-overflow: ellipsis;
+        .name-con {
+            width: 100%;
+            .node-name {
+                position: relative;
+                display: flex;
+                align-items: center;
+                align-content: space-between;
+                flex-wrap: nowrap;
+                width: calc(100% - 2em);
                 white-space: nowrap;
-                overflow: hidden;
+                padding-inline-end: 2em;
+                .label {
+                    text-overflow: ellipsis;
+                    white-space: nowrap;
+                    overflow: hidden;
+                }
             }
         }
         .expand-collaps {

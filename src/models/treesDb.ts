@@ -15,7 +15,7 @@ export class TreesDB extends Dexie {
 
   constructor() {
     super(TREES_DB_NAME, { addons: [dexieCloud] });
-    this.version(12).stores({
+    this.version(13).stores({
       [TREES_ITEMS_TABLE_NAME]: STRING_INDEXES,
       [TREES_TABLE_NAME]: "@id, treeName"
     });
@@ -39,7 +39,7 @@ export class TreesDB extends Dexie {
   createNewTree = async (treeName = "", addRoot: boolean = true, initial: Partial<TreeClass> = {}) => {
     if (!await this._canAddTree()) return "";
     return this.transaction("rw", this.trees, this.treesItems, async () => {
-      const finalTree = { ...initial, id: undefined, treeName }
+      const finalTree = { ...initial, treeName }
       const treeId = await this.trees.add(finalTree);
       addRoot && this.addRootNode(treeId, "root");
       !treeName && treeId && this.trees.update(treeId, { treeName: `My Tree #${treeId}` })
@@ -71,7 +71,7 @@ export class TreesDB extends Dexie {
   duplicateTree = async (treeId: string) => {
 
     return await this.transaction("rw", this.trees, this.treesItems, async () => {
-      if (!await this._canAddTree()) return "";
+      if (!await this._canAddTree()) return;
       // check if exist
       const currentTree = await treesDB.trees.get(treeId);
       if (!currentTree) return;
@@ -92,7 +92,8 @@ export class TreesDB extends Dexie {
 
       const newTreeColl = await this.getAllTreeItemsCollection(newTreeId);
       await newTreeColl.modify((item, ref) => {
-        const { id, parentPath } = item;
+        const { parentPath } = item;
+        // fix parentPath with new ids
         const newParentPath = parentPath.split("/").map(_ => idsMap[_]).join("/")
         const newItem = { ...item, parentPath: newParentPath };
         ref.value = newItem;
@@ -123,28 +124,30 @@ export class TreesDB extends Dexie {
   }
 
   selectNode = async (nodeId: string, status?: 1 | 0) => {
-    const [item, children] = await this.getNodeAndChildren(nodeId);
-    if (!item) return;
-    const { selected, treeId, parentPath } = item;
+    return this.transaction("rw", this.trees, this.treesItems, async () => {
+      const [item, children] = await this.getNodeAndChildren(nodeId);
+      if (!item) return;
+      const { selected, treeId, parentPath } = item;
 
-    if (children?.length) {
-      // if all selected unselect all
-      const selectedDescendantsColl = this.treesItems.where(INDEXES.tps).between([treeId, `${parentPath}${nodeId}/`, 1], [treeId, `${parentPath}${nodeId}/` + `\uffff`, 1]);
-      const allDescendantsColl = await this.getNodeDescendantsCollection(nodeId);
-      const descendantsCount = await allDescendantsColl?.count();
-      const selectedCount = await selectedDescendantsColl.count();
-      if (descendantsCount !== selectedCount) {
-        await this.treesItems.update(nodeId, { selected: 1 });
-        await allDescendantsColl?.modify({ selected: 1 })
+      if (children?.length) {
+        // if all selected unselect all
+        const selectedDescendantsColl = this.treesItems.where(INDEXES.tps).between([treeId, `${parentPath}${nodeId}/`, 1], [treeId, `${parentPath}${nodeId}/` + `\uffff`, 1]);
+        const allDescendantsColl = await this.getNodeDescendantsCollection(nodeId);
+        const descendantsCount = await allDescendantsColl?.count();
+        const selectedCount = await selectedDescendantsColl.count();
+        if (descendantsCount !== selectedCount) {
+          await this.treesItems.update(nodeId, { selected: 1 });
+          await allDescendantsColl?.modify({ selected: 1 })
+        } else {
+          await this.treesItems.update(nodeId, { selected: 0 });
+          await allDescendantsColl?.modify({ selected: 0 })
+        }
+        // else select all
       } else {
-        await this.treesItems.update(nodeId, { selected: 0 });
-        await allDescendantsColl?.modify({ selected: 0 })
+        this.treesItems.update(nodeId, { selected: status ?? selected ? 1 : 0 });
+        const [tree, children] = await this.getRootAndChildren(nodeId);
       }
-      // else select all
-    } else {
-      this.treesItems.update(nodeId, { selected: status ?? selected ? 1 : 0 });
-      const [tree, children] = await this.getRootAndChildren(nodeId);
-    }
+    })
   }
 
   deleteNode = async (nodeId: string) => {
@@ -162,7 +165,7 @@ export class TreesDB extends Dexie {
   }
 
   getRoot = async (treeId: string) => {
-    return this.treesItems.where(INDEXES.tp).equals([treeId, ""]).first();
+    return this.treesItems.where(INDEXES.tp).equals([treeId, ""]).first() as Promise<TreeItem>;
   }
 
   getRootAndChildren = async (treeId: string): Promise<[TreeItem | null, TreeItem[]]> => {
@@ -195,3 +198,18 @@ export class TreesDB extends Dexie {
 
 export const treesDB = new TreesDB();
 
+treesDB.on("populate", async () => {
+
+  // const treeId = await treesDB.createNewTree();
+  // if (!treeId) return;
+  // const { id } = await treesDB.getRoot(treeId);
+  // treesDB.addChildNode(treeId, "Action", id);
+  // await treesDB.addChildNode(treeId, "Comedy", id);
+  // await treesDB.addChildNode(treeId, "Drama", id);
+  // await treesDB.addChildNode(treeId, "Fantasy", id);
+  // await treesDB.addChildNode(treeId, "Horror", id);
+  // await treesDB.addChildNode(treeId, "Mystery", id);
+  // await treesDB.addChildNode(treeId, "Romance", id);
+  // await treesDB.addChildNode(treeId, "Thriller", id);
+
+})
