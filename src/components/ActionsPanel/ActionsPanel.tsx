@@ -16,6 +16,6 @@ export const ActionsPanel: FC<ActionPanelProps> = (props) => {
                 break;
         }
         return comp;
-    }, [])
+    }, [props])
     return actionPanel
 }

@@ -11,7 +11,6 @@ import { EditPanel } from "./EditPanel/EditPanel";
 
 export const TreeActionsPanel: FC<ActionPanelProps> = ({ toggleActionPanel, treeData }) => {
     const [showEditNamePanel, toggleShowEditNamePanel] = useToggle(false);
-    
     if (!treeData) return null;
     const { id, treeName, rtl, lightMode, multiSelect } = treeData;
 
