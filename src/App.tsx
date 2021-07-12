@@ -30,7 +30,7 @@ function App() {
         </div>
       </nav>
       <div className="trees-con">
-        {trees.map(tree => <CategoryTree treeData={tree} />)}
+        {trees.map(tree => <CategoryTree key={tree.id} treeData={tree} />)}
       </div>
     </div>
   );
