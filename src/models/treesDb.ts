@@ -15,7 +15,7 @@ export class TreesDB extends Dexie {
 
   constructor() {
     super(TREES_DB_NAME, { addons: [dexieCloud] });
-    this.version(13).stores({
+    this.version(15).stores({
       [TREES_ITEMS_TABLE_NAME]: STRING_INDEXES,
       [TREES_TABLE_NAME]: "@id, treeName"
     });
@@ -38,10 +38,11 @@ export class TreesDB extends Dexie {
 
   createNewTree = async (treeName = "", addRoot: boolean = true, initial: Partial<TreeClass> = {}) => {
     if (!await this._canAddTree()) return "";
-    return this.transaction("rw", this.trees, this.treesItems, async () => {
-      const finalTree = { ...initial, treeName }
+    return await this.transaction("rw", this.trees, this.treesItems, async () => {
+      const { id, ...rest } = initial;
+      const finalTree = { ...rest, treeName }
       const treeId = await this.trees.add(finalTree);
-      addRoot && this.addRootNode(treeId, "root");
+      addRoot && await this.addRootNode(treeId, treeName || "root");
       !treeName && treeId && this.trees.update(treeId, { treeName: `My Tree #${treeId}` })
       return treeId;
     })
@@ -199,11 +200,20 @@ export class TreesDB extends Dexie {
 export const treesDB = new TreesDB();
 
 treesDB.on("populate", async () => {
+  const treeId = await treesDB.createNewTree("Categories");
+  if (!treeId) return;
+  const { id, parentPath } = (await treesDB.getRoot(treeId)) || {};
+  const finalParentPath = parentPath + id + "/";
+  return await treesDB.treesItems.bulkAdd(([
+    { treeId, name: "Action", parentPath: finalParentPath } as TreeItem,
+    { treeId, name: "Comedy", parentPath: finalParentPath } as TreeItem,
+    { treeId, name: "Drama", parentPath: finalParentPath } as TreeItem,
+    { treeId, name: "Fantasy", parentPath: finalParentPath } as TreeItem,
+    { treeId, name: "Horror", parentPath: finalParentPath } as TreeItem,
+    { treeId, name: "Mystery", parentPath: finalParentPath } as TreeItem,
+  ]));
 
-  // const treeId = await treesDB.createNewTree();
-  // if (!treeId) return;
-  // const { id } = await treesDB.getRoot(treeId);
-  // treesDB.addChildNode(treeId, "Action", id);
+  // await treesDB.addChildNode(treeId, "Action", id);
   // await treesDB.addChildNode(treeId, "Comedy", id);
   // await treesDB.addChildNode(treeId, "Drama", id);
   // await treesDB.addChildNode(treeId, "Fantasy", id);
