@@ -15,5 +15,5 @@ export interface ActionPanelProps {
     treeItem?: TreeItem,
     treeData?: TreeClass,
     hasChildren?: boolean,
-    toggleRow?: (force?: boolean) => void,
+    toggleRow?: (ev:any, force?: boolean) => void,
 }

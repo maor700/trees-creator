@@ -12,7 +12,7 @@ export const RowActionsPanel: FC<ActionPanelProps> = ({ treeItem, toggleRow, tog
     const { treeId, id, name } = treeItem;
 
     const addNode = async (ev: React.MouseEvent<HTMLElement, MouseEvent>) => {
-        toggleRow?.(true);
+        toggleRow?.(null, true);
         try {
             await treesDB.addChildNode(treeId, "new node", id);
         } catch (error) {
