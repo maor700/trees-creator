@@ -35,7 +35,7 @@ function App() {
             <div className="loggedIn">
               Signed in as: <a>{currentUser.name}</a>
             </div>
-            : <div onClick={login} className={`btn primary ${!trees?.length ? 'disable' : ""}`}>Login</div>
+            : <div onClick={login} className={`btn primary`}>Login</div>
           }
           <div onClick={() => addTree()} title={`${maxAchived ? `Limited to ${MAX_TREES} trees. Please first delete a tree in order to be able to add another ` : 'Add a new tree'}`} className={`btn primary ${maxAchived ? 'disable' : ""}`}>Add Tree</div>
           <div onClick={() => deleteAllTrees()} className={`btn primary ${!trees?.length ? 'disable' : ""}`}>Delete All Trees</div>

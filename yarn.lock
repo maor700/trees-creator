@@ -4272,10 +4272,10 @@ detect-port-alt@1.1.6:
     address "^1.0.1"
     debug "^2.6.0"
 
-dexie-cloud-addon@^1.0.0-beta.4:
-  version "1.0.0-beta.4"
-  resolved "https://registry.yarnpkg.com/dexie-cloud-addon/-/dexie-cloud-addon-1.0.0-beta.4.tgz#a253d26d74f968b41100f5ccf171d356d46b6d7b"
-  integrity sha512-B0Xz0qJpyRq+tBZYKV58m9ckKD3FeAQrKqSuthqm2QBgh7oK7q2J/H/Wdliwgc72vDlJkzl8hnfWlmLCpvVD9A==
+dexie-cloud-addon@^1.0.0-beta.5:
+  version "1.0.0-beta.5"
+  resolved "https://registry.yarnpkg.com/dexie-cloud-addon/-/dexie-cloud-addon-1.0.0-beta.5.tgz#64f9a01e344d0c1d4b6d6066e1e67bf375bbf3fd"
+  integrity sha512-gDtkWQrzCVD9WWnNCQVCTRvcgrBv67lqk6EODydekT5n42EzC9lzqrrq0k5iP6g73Gz1uiKP1A/kvnGeKbS1ww==
   dependencies:
     rxjs "^6.6.7"
 
