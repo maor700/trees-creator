@@ -12,10 +12,11 @@ import "./NodeRow.scss";
 
 export const NodeRow: FC<{ treeItem: TreeItem, childrenItems: TreeItem[] }> = ({ treeItem, childrenItems }) => {
     const { name, id, selected } = treeItem;
-    const { onRowChecked, onRowToggle, actionPanelComponent: ActionPanelComponent } = useContext(treeCtx);
+    const { onRowChecked, onRowToggle, actionPanelComponent: ActionPanelComponent, onRowKeyDown } = useContext(treeCtx);
     const [showActionPanel, toggleActionPanel] = useToggle();
     const [showChildren, toggleChildren] = useToggle();
     const [hasChildren, setHasChildren] = useState(false);
+    const [origin, setOrigin] = useState<ORIGINS>(ORIGINS.TREE_NODE);
 
     useEffect(() => {
         setHasChildren(!!childrenItems?.length)
@@ -32,10 +33,21 @@ export const NodeRow: FC<{ treeItem: TreeItem, childrenItems: TreeItem[] }> = ({
         onRowChecked?.(treeItem, checked)
     }
 
+    const actionPanelToggleHandler = (status?: boolean, origin: ORIGINS = ORIGINS.TREE_NODE) => {
+        setOrigin(origin);
+        toggleActionPanel(null, status);
+    }
+
+    const rowClickHandler = (ev: any) => { ev?.stopPropagation(); hasChildren && toggleChildren(null) }
+
     return (
         <>
-            <div className="row">
-                <div className="name-con" onClick={(ev) => { ev.stopPropagation(); hasChildren && toggleChildren(null) }} >
+            <div tabIndex={1} className="row" onKeyUp={(ev) => {
+                ev?.code === "Enter" && rowClickHandler(ev);
+                ev?.code === "Space" && actionPanelToggleHandler(true, ORIGINS.TREE_NODE_SPACE)
+                onRowKeyDown?.(ev, treeItem);
+            }}>
+                <div className="name-con" onClick={rowClickHandler} >
                     <div className="node-name">
                         <div className="collapsser-con">
                             {!showChildren ?
@@ -60,22 +72,23 @@ export const NodeRow: FC<{ treeItem: TreeItem, childrenItems: TreeItem[] }> = ({
                     ActionPanelComponent ?
                         <>
                             <div className="actions-panel">
-                                <BsThreeDots onClick={toggleActionPanel} className="btn" />
+                                <BsThreeDots onClick={() => { actionPanelToggleHandler() }} className="btn" />
                             </div>
-                            <Blurred onBlur={(ev) => toggleActionPanel(ev, false)} shouldBlur={showActionPanel}>
-                                <div onClick={(ev) => { ev.stopPropagation() }}>
-                                    <ModalJunior show={showActionPanel}>
-                                        <ActionPanelComponent
-                                            origin={ORIGINS.TREE_NODE}
-                                            show={showActionPanel}
-                                            toggleActionPanel={toggleActionPanel}
-                                            treeItem={treeItem}
-                                            hasChildren={hasChildren}
-                                            toggleRow={toggleChildren}
-                                        />
-                                    </ModalJunior>
-                                </div>
-                            </Blurred>
+                            {showActionPanel &&
+                                <Blurred onBlur={(ev) => actionPanelToggleHandler(false)} shouldBlur={showActionPanel}>
+                                    <div onClick={(ev) => { ev.stopPropagation() }}>
+                                        <ModalJunior show={showActionPanel}>
+                                            <ActionPanelComponent
+                                                origin={origin}
+                                                show={showActionPanel}
+                                                toggleActionPanel={toggleActionPanel}
+                                                treeItem={treeItem}
+                                                hasChildren={hasChildren}
+                                                toggleRow={toggleChildren}
+                                            />
+                                        </ModalJunior>
+                                    </div>
+                                </Blurred>}
                         </>
                         : null
                 }

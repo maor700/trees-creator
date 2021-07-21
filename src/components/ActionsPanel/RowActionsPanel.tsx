@@ -1,17 +1,34 @@
-import { FC } from "react";
+import { FC, useCallback } from "react";
 import { FaPlus, FaTrash } from "react-icons/fa";
 import { MdEdit } from "react-icons/md";
 import { useToggle } from "../../hooks";
 import { treesDB } from "../../models/treesDb";
-import { ActionPanelProps } from "../Tree";
+import { ActionPanelProps, ORIGINS } from "../Tree";
 import { EditPanel } from "./EditPanel/EditPanel";
 
-export const RowActionsPanel: FC<ActionPanelProps> = ({ treeItem, toggleRow, toggleActionPanel }) => {
-    const [showEditNamePanel, toggleShowEditNamePanel] = useToggle();
+export const RowActionsPanel: FC<ActionPanelProps> = ({ treeItem, toggleRow, toggleActionPanel, origin }) => {
+    const [showEditNamePanel, toggleShowEditNamePanel] = useToggle(origin === ORIGINS.TREE_NODE_SPACE);
+    const editName = useCallback(async (val: string) => {
+        try {
+            await treesDB.editNode(id, { name: val });
+            toggleActionPanel(null, false)
+            toggleShowEditNamePanel(null, false);
+        } catch (error) {
+            console.error(error)
+        }
+    }, [treesDB]);
+
+    const cancelHandler = useCallback(() => {
+        if (origin === ORIGINS.TREE_NODE_SPACE) {
+            toggleActionPanel(null, false);
+        }
+        toggleShowEditNamePanel(null, false)
+    }, [])
+
     if (!treeItem) return null;
     const { treeId, id, name } = treeItem;
 
-    const addNode = async (ev: React.MouseEvent<HTMLElement, MouseEvent>) => {
+    const addNode = async (ev: any) => {
         toggleRow?.(null, true);
         try {
             await treesDB.addChildNode(treeId, "new node", id);
@@ -27,30 +44,21 @@ export const RowActionsPanel: FC<ActionPanelProps> = ({ treeItem, toggleRow, tog
         }
         allowed && treesDB.deleteNode(id)
     }
-    const editName = async (val: string) => {
-        try {
-            await treesDB.editNode(id, { name: val });
-            toggleActionPanel(null, false)
-            toggleShowEditNamePanel(null, false);
-        } catch (error) {
-            console.error(error)
-        }
-    }
 
     return (
         <>
             {!showEditNamePanel ? <div className="content">
-                <div title="ערוך">
-                    <MdEdit className="btn" onClick={toggleShowEditNamePanel} size={18} />
+                <div title="ערוך" onClick={toggleShowEditNamePanel}>
+                    <MdEdit className="btn" size={18} />
                 </div>
-                <div title="הוסף פריט">
-                    <FaPlus className="btn" onClick={addNode as any} />
+                <div title="הוסף פריט" onClick={addNode}>
+                    <FaPlus className="btn" />
                 </div>
-                <div title="מחק פריט">
-                    <FaTrash className="btn" onClick={deleteNode} />
+                <div title="מחק פריט" onClick={deleteNode}>
+                    <FaTrash className="btn" />
                 </div>
             </div>
-                : <EditPanel value={name} onSubmit={editName} onCancel={() => toggleShowEditNamePanel(null, false)} />}
+                : <EditPanel value={name} onSubmit={editName} onCancel={cancelHandler} />}
         </>
     )
 }

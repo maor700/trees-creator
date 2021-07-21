@@ -5,6 +5,7 @@ export {Tree} from "./Tree";
 
 export enum ORIGINS {
     TREE_NODE,
+    TREE_NODE_SPACE,
     TREE_HEADER
 }
 

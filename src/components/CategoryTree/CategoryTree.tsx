@@ -24,11 +24,26 @@ export const CategoryTree: FC<OwnProps> = ({ treeData }) => {
         }))
     }, [treesDB]);
 
+    const onRowKeyDownHandler = useCallback(({ code, key }, { id: itemId }) => {
+        if (key === "+" && id) {
+            treesDB.addChildNode(id, "new node", itemId)
+        }
+        if (code === "Delete") {
+            treesDB.deleteNode(itemId);
+        }
+    }, [treesDB, id])
+
     const checkHandler = useCallback(async (treeItem, checked) => {
         return await treesDB.selectNode(treeItem.id, checked ? 1 : 0)
     }, [treeData])
 
     if (!root) return null;
 
-    return <Tree onRowChecked={checkHandler} root={root} getNodeChildren={getChildren} actionPanelComponent={ActionsPanel} key={treeData.id} treeData={treeData} />
+    return <Tree
+        onRowKeyDown={onRowKeyDownHandler}
+        onRowChecked={checkHandler} root={root}
+        getNodeChildren={getChildren}
+        actionPanelComponent={ActionsPanel}
+        key={treeData.id}
+        treeData={treeData} />
 }
