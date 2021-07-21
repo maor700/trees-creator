@@ -15,7 +15,7 @@ export class TreesDB extends Dexie {
 
   constructor() {
     super(TREES_DB_NAME, { addons: [dexieCloud] });
-    this.version(15).stores({
+    this.version(25).stores({
       [TREES_ITEMS_TABLE_NAME]: STRING_INDEXES,
       [TREES_TABLE_NAME]: "@id, treeName"
     });
