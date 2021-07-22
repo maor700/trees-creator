@@ -23,5 +23,5 @@ yarn-debug.log*
 yarn-error.log*
 
 # dexie-cloud
-dexie-cloud.json
-dexie-cloud.key
+# dexie-cloud.json
+# dexie-cloud.key

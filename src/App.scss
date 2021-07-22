@@ -2,20 +2,21 @@ html {
     font-family: Lato;
 }
 
-#root {
-    background: #eaeffb;
+body {
+    background: #191919;
 }
 
 .app-con {
     height: 100vh;
     nav {
-        background-color: #c2c2c296;
+        background-color: #101010;
         margin-bottom: 1em;
         display: flex;
         justify-content: space-between;
         align-items: center;
+        color: #eee;
+        flex-wrap: wrap;
         h1 {
-            flex: 1;
             margin: 0;
             padding: 0.5em;
         }
@@ -49,6 +50,8 @@ html {
         display: flex;
         justify-content: space-evenly;
         height: calc(100vh - 6em);
+        flex-wrap: wrap;
+        gap: 1em;
     }
     .actions-panel {
         position: relative;
@@ -81,6 +84,9 @@ html {
     .btn:hover:not(.disable),
     .btn.active:not(.disable) {
         opacity: 1;
+    }
+    select.btn {
+        min-width: 6em;
     }
     .content {
         display: flex;

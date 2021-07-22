@@ -13,16 +13,17 @@ import { ActionPanelProps, ORIGINS } from ".";
 import "./Tree.scss";
 
 interface TreeProps {
-    onRowChecked?: (itemId: TreeItem, status: boolean) => ReactNode,
-    onRowToggle?: (itemId: TreeItem, isCollapsed: boolean) => void;
-    actionPanelComponent?: FC<ActionPanelProps>;
-    getNodeChildren: (treeItem?: TreeItem) => Observable<TreeItem[]>
     treeData: TreeClass;
     root: TreeItem
+    actionPanelComponent?: FC<ActionPanelProps>;
+    getNodeChildren: (treeItem?: TreeItem) => Observable<TreeItem[]>
+    onRowChecked?: (itemId: TreeItem, status: boolean) => ReactNode,
+    onRowToggle?: (itemId: TreeItem, isCollapsed: boolean) => void;
+    onRowKeyDown?: (ev: React.KeyboardEvent<any>, treeItem: TreeItem) => void
 }
 
 export const Tree: FC<TreeProps> = (props) => {
-    const { treeData,  root } = props;
+    const { treeData, root } = props;
     const { treeName, rtl, lightMode, multiSelect } = treeData;
     const [showActionPanel, toggleActionPanel] = useToggle();
     const menuBtnRef = useRef<HTMLDivElement>(null);
@@ -42,7 +43,7 @@ export const Tree: FC<TreeProps> = (props) => {
                                 treeData={treeData}
                                 show={showActionPanel}
                                 toggleActionPanel={toggleActionPanel}
-                                />
+                            />
                         </ModalJunior>
                     </Blurred>
                 </div>

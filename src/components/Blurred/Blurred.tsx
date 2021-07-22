@@ -1,6 +1,6 @@
 import React, { FC, useCallback, useEffect, useMemo, useRef, useState } from "react";
 interface OwnProps {
-    onBlur: (ev: MouseEvent) => void
+    onBlur: (ev: Event) => void
     excludedElements?: HTMLElement[]
     shouldBlur: boolean
 }
@@ -24,14 +24,20 @@ export const Blurred: FC<OwnProps> = ({ children, onBlur, excludedElements, shou
         blur && onBlur(ev);
     }, [shouldBlur]);
 
+    const escapeHandler = useCallback((ev) => {
+        ev?.code === "Escape" && onBlur(ev)
+    }, [])
+
     useEffect(() => {
 
         if (!shouldBlur) return;
 
         document.addEventListener("click", clickHandler);
+        document.addEventListener("keydown", escapeHandler);
         
         return () => {
             document.removeEventListener("click", clickHandler);
+            document.removeEventListener("keydown", escapeHandler);
         };
     }, [shouldBlur])
 

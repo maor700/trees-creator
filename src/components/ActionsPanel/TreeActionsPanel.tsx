@@ -28,9 +28,9 @@ export const TreeActionsPanel: FC<ActionPanelProps> = ({ toggleActionPanel, tree
 
     const editTreeName = async (val: string) => {
         try {
-            await treesDB.editTree(id, { treeName: val });
             toggleActionPanel(null, false)
             toggleShowEditNamePanel(null, false);
+            await treesDB.editTree(id, { treeName: val });
         } catch (error) {
             console.error(error)
         }
