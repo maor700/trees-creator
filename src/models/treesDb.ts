@@ -23,11 +23,11 @@ export class TreesDB extends Dexie {
 
   constructor() {
     super(TREES_DB_NAME, { addons: [dexieCloud] });
-    this.version(26).stores({
+    this.version(27).stores({
       [TREES_ITEMS_TABLE_NAME]: STRING_INDEXES,
       [TREES_TABLE_NAME]: "@id, treeName",
       [TREES_STATES_TABLE_NAME]: "@id, treeName",
-      [APP_TABLE_NAME]: "@id, key, value",
+      [APP_TABLE_NAME]: "@id, key",
     });
 
     this.cloud.configure({
@@ -45,12 +45,12 @@ export class TreesDB extends Dexie {
     this.treesStates.mapToClass(TreesStates);
     this.app.mapToClass(AppState);
 
-    this.setAppPropVal("appIsDirt", false);
+    // this.setAppPropVal("appIsDirt", 0);
 
     // appDirt
-    liveQuery(() => this.trees.toArray() && this.treesItems.toArray())
+    liveQuery(async () => await this.trees.toArray() && this.treesItems.toArray())
       .subscribe(() => {
-        this.setAppPropVal<boolean>("appIsDirt", true)
+        // this.setAppPropVal("appIsDirt", 1)
       })
   }
 
@@ -253,7 +253,7 @@ export class TreesDB extends Dexie {
   saveCurrentTree = async (stateName?: string) => {
     const { id, stateName: currName } = await this.getAppPropVal<TreesStates>("selectedState");
     const secceed = await this._saveTreesState({ stateName: stateName ?? currName, id });
-    return secceed && await this.setAppPropVal("appIsDirt", false);
+    return secceed && await this.setAppPropVal("appIsDirt", 0);
   }
 
   saveNewState = async (stateName: string) => {
@@ -271,14 +271,14 @@ export class TreesDB extends Dexie {
       await this.treesItems.bulkPut(treesItems);
       await this.setAppPropVal("selectedState", state);
       setTimeout(async () => {
-        await this.setAppPropVal("appIsDirt", false);
+        await this.setAppPropVal("appIsDirt", 0);
       }, 100)
       return true;
     });
   }
 
   deleteState = async (id: string) => {
-    this.transaction("rw", this.treesStates, this.treesItems, this.trees,this.app, async () => {
+    this.transaction("rw", this.treesStates, this.treesItems, this.trees, this.app, async () => {
       await this.treesStates.delete(id);
       const newSelectedSate = await this.treesStates.toCollection().first();
       newSelectedSate?.id && await this.loadTreesState(newSelectedSate?.id);
