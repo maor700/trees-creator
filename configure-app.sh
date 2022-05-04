@@ -18,4 +18,3 @@ echo ""
 echo "Application is now configured!"
 echo "Use 'yarn install' if you haven't done so already."
 echo "Use 'yarn start' to start the app."
- 
