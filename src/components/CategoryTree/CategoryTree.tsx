@@ -2,7 +2,7 @@ import { liveQuery } from "dexie";
 import { FC, useCallback } from "react";
 import { TreeClass } from "../../models/Tree";
 import { Tree } from "../Tree";
-import { from } from "rxjs"
+import { from } from "rxjs";
 import { treesDB } from "../../models/treesDb";
 import { ActionsPanel } from "../ActionsPanel/ActionsPanel";
 import { useLiveQuery } from "dexie-react-hooks";

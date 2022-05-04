@@ -6,6 +6,9 @@ import { TreeClass } from './Tree';
 import { TreesStates } from './TreesStates';
 import { AppState } from './AppState';
 
+console.log(import.meta.env);
+
+
 export const TREES_DB_NAME = "treesDB";
 const TREES_ITEMS_TABLE_NAME = "treesItems";
 const TREES_TABLE_NAME = "trees";
@@ -31,7 +34,7 @@ export class TreesDB extends Dexie {
     });
 
     this.cloud.configure({
-      databaseUrl: process.env.REACT_APP_DBURL!,
+      databaseUrl: import.meta.env.VITE_REACT_APP_DBURL!,
       tryUseServiceWorker: true,
       requireAuth: false
     });
@@ -233,7 +236,7 @@ export class TreesDB extends Dexie {
     if (propExist) {
       return !!((await this.getAppPropColl(propName).modify({ value })))
     } else {
-      return !!(await this.app.add({ key: propName, value }))
+      return !!(await this.app.add({ key: propName, value } as any))
     }
   }
 
