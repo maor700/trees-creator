@@ -411,24 +411,45 @@ export class TreesDB extends Dexie {
     return !!(await this.app.put({ key: propName, value } as AppState))
   }
 
-  /// Trees States - kept local only for now
+  /// Trees States - synced to Supabase
 
-  _saveTreesState = async ({ stateName, id }: { stateName?: string, id?: string }) => (
-    this.transaction("rw", this.treesStates, this.treesItems, this.trees, async () => {
+  _saveTreesState = async ({ stateName, id }: { stateName?: string, id?: string }) => {
+    const stateId = await this.transaction("rw", this.treesStates, this.treesItems, this.trees, async () => {
       const trees = await this.trees.toArray();
       const treesItems = await this.treesItems.toArray();
       let stateToSave: TreesStates = { trees, treesItems, stateName };
       if (id) stateToSave.id = id;
-      return await this.treesStates.put(stateToSave);
-    })
-  )
+      else stateToSave.id = generateId();
+      await this.treesStates.put(stateToSave);
+      return stateToSave.id;
+    });
+
+    // Sync to Supabase in background
+    if (stateId) {
+      syncInBackground(async (syncService) => {
+        const state = await this.treesStates.get(stateId);
+        if (state) {
+          await syncService.saveTreeStateToSupabase(state);
+        }
+      });
+    }
+
+    return stateId;
+  }
 
   saveCurrentTree = async (stateName?: string) => {
     const selectedState = await this.getAppPropVal<TreesStates>("selectedState");
     if (!selectedState) return false;
     const { id, stateName: currName } = selectedState;
-    const secceed = await this._saveTreesState({ stateName: stateName ?? currName, id });
-    return secceed && await this.setAppPropVal("appIsDirt", false);
+    const stateId = await this._saveTreesState({ stateName: stateName ?? currName, id });
+    if (stateId) {
+      // Update selectedState with new data
+      const updatedState = await this.treesStates.get(stateId);
+      if (updatedState) {
+        await this.setAppPropVal("selectedState", updatedState);
+      }
+    }
+    return stateId && await this.setAppPropVal("appIsDirt", false);
   }
 
   saveNewState = async (stateName: string) => {
@@ -454,11 +475,16 @@ export class TreesDB extends Dexie {
   }
 
   deleteState = async (id: string) => {
-    this.transaction("rw", this.treesStates, this.treesItems, this.trees, this.app, async () => {
+    await this.transaction("rw", this.treesStates, this.treesItems, this.trees, this.app, async () => {
       await this.treesStates.delete(id);
       const newSelectedSate = await this.treesStates.toCollection().first();
       newSelectedSate?.id && await this.loadTreesState(newSelectedSate?.id);
-    })
+    });
+
+    // Sync to Supabase in background
+    syncInBackground(async (syncService) => {
+      await syncService.deleteTreeStateFromSupabase(id);
+    });
   }
 }
 

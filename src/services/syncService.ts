@@ -1,6 +1,7 @@
 import { supabase } from '../lib/supabase';
 import { TreeClass } from '../models/Tree';
 import { TreeItem } from '../models/TreeItem';
+import { TreesStates } from '../models/TreesStates';
 
 interface SupabaseTree {
   id: string;
@@ -21,6 +22,16 @@ interface SupabaseTreeItem {
   parent_path: string;
   data?: Record<string, unknown>;
   selected: 0 | 1;
+  created_at?: string;
+  updated_at?: string;
+}
+
+interface SupabaseTreeState {
+  id: string;
+  user_id: string;
+  state_name: string;
+  trees: TreeClass[];
+  tree_items: TreeItem[];
   created_at?: string;
   updated_at?: string;
 }
@@ -96,7 +107,37 @@ class SyncService {
         await treesDB.treesItems.bulkPut(localItems);
       }
 
-      console.log(`Loaded ${trees?.length || 0} trees and ${treeItems?.length || 0} items from Supabase`);
+      // Load tree states from Supabase
+      const { data: treeStates, error: statesError } = await supabase
+        .from('tree_states')
+        .select('*')
+        .eq('user_id', userId);
+
+      if (statesError) {
+        console.error('Error loading tree states:', statesError);
+      } else if (treeStates && treeStates.length > 0) {
+        // Clear local tree states first
+        await treesDB.treesStates.clear();
+
+        const localStates: TreesStates[] = treeStates.map((s: SupabaseTreeState) => ({
+          id: s.id,
+          stateName: s.state_name,
+          trees: s.trees || [],
+          treesItems: s.tree_items || [],
+        }));
+
+        await treesDB.treesStates.bulkPut(localStates);
+
+        // Set the first state as selected if none is selected
+        const selectedState = await treesDB.getAppPropVal('selectedState');
+        if (!selectedState && localStates.length > 0) {
+          await treesDB.setAppPropVal('selectedState', localStates[0]);
+          // Load the first state's data
+          await treesDB.loadTreesState(localStates[0].id!);
+        }
+      }
+
+      console.log(`Loaded ${trees?.length || 0} trees, ${treeItems?.length || 0} items, and ${treeStates?.length || 0} states from Supabase`);
     } catch (error) {
       console.error('Error syncing from Supabase:', error);
     }
@@ -107,6 +148,8 @@ class SyncService {
       const treesDB = await getTreesDB();
       await treesDB.trees.clear();
       await treesDB.treesItems.clear();
+      await treesDB.treesStates.clear();
+      await treesDB.setAppPropVal('selectedState', null);
     } catch (error) {
       console.error('Error clearing local data:', error);
     }
@@ -240,6 +283,64 @@ class SyncService {
 
   setCurrentUserId(userId: string | null) {
     this.currentUserId = userId;
+  }
+
+  // Tree States sync methods
+
+  async saveTreeStateToSupabase(state: TreesStates) {
+    if (!this.currentUserId) {
+      console.error('No user logged in');
+      return null;
+    }
+
+    const supabaseState: Partial<SupabaseTreeState> = {
+      id: state.id,
+      user_id: this.currentUserId,
+      state_name: state.stateName || 'Untitled',
+      trees: state.trees || [],
+      tree_items: state.treesItems || [],
+    };
+
+    const { data, error } = await supabase
+      .from('tree_states')
+      .upsert(supabaseState)
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Error saving tree state to Supabase:', error);
+      return null;
+    }
+
+    return data;
+  }
+
+  async updateTreeStateInSupabase(stateId: string, changes: Partial<TreesStates>) {
+    const supabaseChanges: Partial<SupabaseTreeState> = {};
+
+    if (changes.stateName !== undefined) supabaseChanges.state_name = changes.stateName;
+    if (changes.trees !== undefined) supabaseChanges.trees = changes.trees;
+    if (changes.treesItems !== undefined) supabaseChanges.tree_items = changes.treesItems;
+
+    const { error } = await supabase
+      .from('tree_states')
+      .update(supabaseChanges)
+      .eq('id', stateId);
+
+    if (error) {
+      console.error('Error updating tree state in Supabase:', error);
+    }
+  }
+
+  async deleteTreeStateFromSupabase(stateId: string) {
+    const { error } = await supabase
+      .from('tree_states')
+      .delete()
+      .eq('id', stateId);
+
+    if (error) {
+      console.error('Error deleting tree state from Supabase:', error);
+    }
   }
 }
 
