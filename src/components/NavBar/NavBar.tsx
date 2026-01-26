@@ -1,5 +1,5 @@
 import { useLiveQuery } from "dexie-react-hooks";
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useToggle } from "../../hooks";
 import { TreeClass } from "../../models/Tree";
 import { MAX_TREES, treesDB } from "../../models/treesDb";
@@ -20,6 +20,7 @@ export const NavBar = () => {
     const states: TreesStates[] = useLiveQuery(async () => treesDB.treesStates.toArray(), [], []);
     const trees = useLiveQuery<TreeClass[], TreeClass[]>(async () => (await treesDB.trees.toArray()), [], [])
     const [isToggled, toggle] = useToggle(false);
+    const saveAsBtnRef = useRef<HTMLDivElement>(null);
     const selectedState = useLiveQuery<TreesStates>(async () => (await treesDB.getAppPropVal("selectedState")), [])
 
     const login = () => setShowAuthForm(true);
@@ -81,7 +82,7 @@ export const NavBar = () => {
         <nav>
             <h1>Tree Creator</h1>
             <div className="document">
-                <Blurred onBlur={(ev) => toggle(ev, false)} shouldBlur={isToggled}>
+                <Blurred onBlur={(ev) => toggle(ev, false)} shouldBlur={isToggled} excludedElements={saveAsBtnRef.current ? [saveAsBtnRef.current] : []}>
                     <ModalJunior show={isToggled}>
                         <EditPanel placeholder="Name of document" value={selectedState?.stateName ? selectedState?.stateName + "-copy" : ""} onSubmit={saveAs} onCancel={() => toggle(null, false)} />
                     </ModalJunior>
@@ -92,7 +93,7 @@ export const NavBar = () => {
                     ))}
                 </select>
                 <div title="save document (ctrl+S)" onClick={() => appIsDirt && save()} className={`btn primary ${!appIsDirt ? 'disable' : ''}`}><MdSave size="1.2em" /></div>
-                <div onClick={toggle} title="Save as" className={`btn primary`}><VscSaveAs size="1.2em" /></div>
+                <div ref={saveAsBtnRef} onClick={toggle} title="Save as" className={`btn primary`}><VscSaveAs size="1.2em" /></div>
                 <div onClick={addTree} title={`${maxAchived ? `Limited to ${MAX_TREES} trees. Please first delete a tree in order to be able to add another ` : 'Add a new tree'}`} className={`btn primary ${maxAchived ? 'disable' : ""}`}>{<MdAdd size="1.2em" />}</div>
                 <div onClick={deleteDocument} title={selectedState?.stateName ? `Delete Document ${selectedState.stateName}` : 'No document selected'} className={`btn primary ${!selectedState?.id ? 'disable' : ''}`}>{<MdDelete size="1.2em" />}</div>
             </div>

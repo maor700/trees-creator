@@ -98,6 +98,9 @@ export class TreesDB extends Dexie {
       rootNodeId = await this.addRootNode(treeId, finalTreeName || "root");
     }
 
+    // Mark as dirty
+    await this.setAppPropVal("appIsDirt", true);
+
     // Sync to Supabase in background
     syncInBackground(async (syncService) => {
       await syncService.saveTreeToSupabase(treeData);
@@ -130,6 +133,7 @@ export class TreesDB extends Dexie {
 
     // Sync to Supabase in background
     if (result) {
+      await this.setAppPropVal("appIsDirt", true);
       syncInBackground(async (syncService) => {
         await syncService.deleteTreeFromSupabase(treeId);
       });
@@ -140,6 +144,9 @@ export class TreesDB extends Dexie {
 
   editTree = async (treeId: string, changes: Partial<TreeClass>) => {
     const result = await this.trees.update(treeId, changes);
+
+    // Mark as dirty
+    await this.setAppPropVal("appIsDirt", true);
 
     // Sync to Supabase in background
     syncInBackground(async (syncService) => {
@@ -187,6 +194,9 @@ export class TreesDB extends Dexie {
       }
     }
 
+    // Mark as dirty
+    await this.setAppPropVal("appIsDirt", true);
+
     // Sync to Supabase in background
     syncInBackground(async (syncService) => {
       for (const item of updatedItems) {
@@ -200,6 +210,9 @@ export class TreesDB extends Dexie {
   deleteAllTrees = async () => {
     const trees = await this.trees.toArray();
     const results = await Promise.allSettled([this.trees.clear(), this.treesItems.clear()]);
+
+    // Mark as dirty
+    await this.setAppPropVal("appIsDirt", true);
 
     // Sync to Supabase in background
     syncInBackground(async (syncService) => {
@@ -250,6 +263,9 @@ export class TreesDB extends Dexie {
     // Save to local Dexie
     await this.treesItems.put(nodeData);
 
+    // Mark as dirty
+    await this.setAppPropVal("appIsDirt", true);
+
     // Sync to Supabase in background
     syncInBackground(async (syncService) => {
       await syncService.saveTreeItemToSupabase(nodeData);
@@ -260,6 +276,9 @@ export class TreesDB extends Dexie {
 
   editNode = async (nodeId: string, changes: Partial<TreeItem>) => {
     const result = await this.treesItems.update(nodeId, changes);
+
+    // Mark as dirty
+    await this.setAppPropVal("appIsDirt", true);
 
     // Sync to Supabase in background
     syncInBackground(async (syncService) => {
@@ -304,6 +323,9 @@ export class TreesDB extends Dexie {
       }
     });
 
+    // Mark as dirty
+    await this.setAppPropVal("appIsDirt", true);
+
     // Sync to Supabase in background
     syncInBackground(async (syncService) => {
       for (const id of updatedIds) {
@@ -333,6 +355,7 @@ export class TreesDB extends Dexie {
 
     // Sync to Supabase in background
     if (result) {
+      await this.setAppPropVal("appIsDirt", true);
       syncInBackground(async (syncService) => {
         await syncService.deleteTreeItemFromSupabase(nodeId);
         for (const desc of descendants) {
