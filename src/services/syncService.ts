@@ -233,6 +233,7 @@ class SyncService {
       name: item.name,
       parent_path: item.parentPath || '',
       selected: item.selected || 0,
+      data: item.data,
     };
 
     const { data, error } = await supabase
@@ -255,6 +256,7 @@ class SyncService {
     if (changes.name !== undefined) supabaseChanges.name = changes.name;
     if (changes.parentPath !== undefined) supabaseChanges.parent_path = changes.parentPath;
     if (changes.selected !== undefined) supabaseChanges.selected = changes.selected;
+    if (changes.data !== undefined) supabaseChanges.data = changes.data;
 
     const { error } = await supabase
       .from('tree_items')

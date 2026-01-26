@@ -1,0 +1,921 @@
+.item-details-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 1em;
+}
+
+.item-details-modal {
+  background: #2d2d2d;
+  border-radius: 0.5em;
+  width: 100%;
+  max-width: 600px;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.4);
+  overflow: hidden;
+
+  .modal-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    padding: 1em 1em 0.75em;
+    border-bottom: 1px solid #444;
+    gap: 1em;
+
+    .close-btn {
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 2.5em;
+      height: 2.5em;
+      border: none;
+      border-radius: 0.25em;
+      background: transparent;
+      color: #aaa;
+      cursor: pointer;
+      transition: all 0.15s ease;
+
+      &:hover {
+        background: #3a3a3a;
+        color: #fff;
+      }
+    }
+  }
+
+  .modal-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 1em;
+    display: flex;
+    flex-direction: column;
+    gap: 1.25em;
+  }
+
+  .modal-footer {
+    padding: 0.75em 1em;
+    border-top: 1px solid #444;
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    min-height: 2.5em;
+
+    .saving-indicator {
+      color: #3b82f6;
+      font-size: 0.85em;
+    }
+
+    .last-modified {
+      color: #666;
+      font-size: 0.8em;
+    }
+  }
+}
+
+// Title Section
+.title-section {
+  flex: 1;
+  min-width: 0;
+
+  .title-display {
+    display: flex;
+    align-items: center;
+    gap: 0.5em;
+    cursor: pointer;
+    padding: 0.25em;
+    border-radius: 0.25em;
+    transition: background 0.15s ease;
+
+    &:hover {
+      background: #3a3a3a;
+
+      .edit-btn {
+        opacity: 1;
+        color: #fff;
+      }
+    }
+
+    .title-text {
+      margin: 0;
+      font-size: 1.25em;
+      font-weight: 600;
+      color: #eee;
+      word-break: break-word;
+    }
+
+    .edit-btn {
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 1.75em;
+      height: 1.75em;
+      border: none;
+      background: transparent;
+      color: #555;
+      cursor: pointer;
+      opacity: 1;
+      transition: all 0.15s ease;
+    }
+  }
+
+  .title-edit {
+    display: flex;
+    align-items: center;
+    gap: 0.5em;
+
+    .title-input {
+      flex: 1;
+      min-width: 0;
+      padding: 0.5em;
+      font-size: 1.25em;
+      font-weight: 600;
+      border: 1px solid #4a4a4a;
+      border-radius: 0.25em;
+      background: #1e1e1e;
+      color: #eee;
+      outline: none;
+
+      &:focus {
+        border-color: #3b82f6;
+      }
+    }
+
+    .btn {
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 2em;
+      height: 2em;
+      border: none;
+      border-radius: 0.25em;
+      cursor: pointer;
+      transition: all 0.15s ease;
+
+      &.save-btn {
+        background: #22c55e;
+        color: white;
+
+        &:hover {
+          background: #16a34a;
+        }
+      }
+
+      &.cancel-btn {
+        background: #4a4a4a;
+        color: #eee;
+
+        &:hover {
+          background: #5a5a5a;
+        }
+      }
+    }
+  }
+}
+
+// Status Section
+.status-section {
+  .section-label {
+    display: block;
+    font-size: 0.85em;
+    font-weight: 500;
+    color: #888;
+    margin-bottom: 0.5em;
+  }
+
+  .status-dropdown {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+
+    select {
+      appearance: none;
+      padding: 0.5em 2.5em 0.5em 0.75em;
+      font-size: 0.95em;
+      border: 2px solid;
+      border-radius: 0.35em;
+      background: #1e1e1e;
+      color: #eee;
+      cursor: pointer;
+      outline: none;
+      transition: border-color 0.15s ease;
+
+      &:focus {
+        outline: 2px solid rgba(59, 130, 246, 0.5);
+        outline-offset: 2px;
+      }
+
+      option {
+        background: #2d2d2d;
+        color: #eee;
+      }
+    }
+
+    .status-indicator {
+      position: absolute;
+      right: 0.75em;
+      width: 0.6em;
+      height: 0.6em;
+      border-radius: 50%;
+      pointer-events: none;
+    }
+  }
+}
+
+// Description Section
+.description-section {
+  .section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 0.5em;
+
+    .section-label {
+      font-size: 0.85em;
+      font-weight: 500;
+      color: #888;
+      margin: 0;
+    }
+
+    .edit-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 1.75em;
+      height: 1.75em;
+      border: none;
+      border-radius: 0.25em;
+      background: transparent;
+      color: #888;
+      cursor: pointer;
+      transition: all 0.15s ease;
+
+      &:hover {
+        background: #3a3a3a;
+        color: #fff;
+      }
+    }
+  }
+
+  .description-display {
+    min-height: 80px;
+    padding: 0.75em;
+    border: 1px solid #444;
+    border-radius: 0.4em;
+    background: #1e1e1e;
+    cursor: pointer;
+    transition: all 0.15s ease;
+
+    &:hover {
+      border-color: #555;
+      background: #252525;
+    }
+
+    &.empty {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .placeholder {
+      color: #666;
+      font-style: italic;
+    }
+
+    .description-content {
+      color: #eee;
+      line-height: 1.5;
+
+      p {
+        margin: 0 0 0.5em 0;
+
+        &:last-child {
+          margin-bottom: 0;
+        }
+      }
+
+      ul, ol {
+        padding-inline-start: 1.5em;
+        margin: 0.5em 0;
+      }
+
+      li {
+        margin: 0.25em 0;
+      }
+
+      a {
+        color: #6ea8fe;
+        text-decoration: underline;
+      }
+
+      strong {
+        font-weight: 600;
+      }
+
+      em {
+        font-style: italic;
+      }
+    }
+  }
+
+  .description-edit {
+    .edit-actions {
+      display: flex;
+      gap: 0.5em;
+      margin-top: 0.75em;
+      justify-content: flex-end;
+
+      .btn {
+        display: flex;
+        align-items: center;
+        gap: 0.35em;
+        padding: 0.5em 1em;
+        border: none;
+        border-radius: 0.25em;
+        font-size: 0.9em;
+        cursor: pointer;
+        transition: all 0.15s ease;
+
+        &.save-btn {
+          background: #22c55e;
+          color: white;
+
+          &:hover {
+            background: #16a34a;
+          }
+        }
+
+        &.cancel-btn {
+          background: #4a4a4a;
+          color: #eee;
+
+          &:hover {
+            background: #5a5a5a;
+          }
+        }
+      }
+    }
+  }
+}
+
+// Light theme support
+.light-theme {
+  .item-details-overlay {
+    background: rgba(0, 0, 0, 0.5);
+  }
+
+  .item-details-modal {
+    background: #fff;
+
+    .modal-header {
+      border-color: #ddd;
+
+      .close-btn {
+        color: #666;
+
+        &:hover {
+          background: #f0f0f0;
+          color: #333;
+        }
+      }
+    }
+
+    .modal-footer {
+      border-color: #ddd;
+
+      .last-modified {
+        color: #999;
+      }
+    }
+  }
+
+  .title-section {
+    .title-display {
+      &:hover {
+        background: #f0f0f0;
+      }
+
+      .title-text {
+        color: #333;
+      }
+    }
+
+    .title-edit {
+      .title-input {
+        background: #fff;
+        border-color: #ddd;
+        color: #333;
+
+        &:focus {
+          border-color: #3b82f6;
+        }
+      }
+
+      .cancel-btn {
+        background: #e0e0e0;
+        color: #333;
+
+        &:hover {
+          background: #d0d0d0;
+        }
+      }
+    }
+  }
+
+  .status-section {
+    .section-label {
+      color: #666;
+    }
+
+    .status-dropdown select {
+      background: #fff;
+      color: #333;
+
+      option {
+        background: #fff;
+        color: #333;
+      }
+    }
+  }
+
+  .description-section {
+    .section-header {
+      .section-label {
+        color: #666;
+      }
+
+      .edit-btn {
+        color: #666;
+
+        &:hover {
+          background: #f0f0f0;
+          color: #333;
+        }
+      }
+    }
+
+    .description-display {
+      background: #fff;
+      border-color: #ddd;
+
+      &:hover {
+        border-color: #bbb;
+        background: #fafafa;
+      }
+
+      .placeholder {
+        color: #999;
+      }
+
+      .description-content {
+        color: #333;
+
+        a {
+          color: #0066cc;
+        }
+      }
+    }
+
+    .description-edit {
+      .edit-actions {
+        .btn.cancel-btn {
+          background: #e0e0e0;
+          color: #333;
+
+          &:hover {
+            background: #d0d0d0;
+          }
+        }
+      }
+    }
+  }
+
+  .attachments-section {
+    .section-header .add-btn {
+      color: #666;
+
+      &:hover {
+        background: #f0f0f0;
+        color: #333;
+      }
+    }
+
+    .empty-state {
+      background: #fff;
+      border-color: #ddd;
+      color: #999;
+    }
+
+    .attachments-list .attachment-item {
+      background: #f5f5f5;
+      border-color: #ddd;
+
+      .attachment-icon {
+        background: #e0e0e0;
+        color: #666;
+      }
+
+      .attachment-info {
+        .attachment-name {
+          color: #333;
+        }
+
+        .attachment-size {
+          color: #999;
+        }
+      }
+
+      .attachment-actions .action-btn {
+        color: #666;
+
+        &:hover {
+          background: #e0e0e0;
+          color: #333;
+        }
+
+        &.delete:hover {
+          background: #fee2e2;
+          color: #dc2626;
+        }
+      }
+    }
+  }
+
+  .youtube-section {
+    .section-header .add-btn {
+      color: #666;
+
+      &:hover {
+        background: #f0f0f0;
+        color: #333;
+      }
+    }
+
+    .empty-state {
+      background: #fff;
+      border-color: #ddd;
+      color: #999;
+    }
+
+    .youtube-input-container {
+      .youtube-input {
+        background: #fff;
+        border-color: #ddd;
+        color: #333;
+
+        &:focus {
+          border-color: #3b82f6;
+        }
+      }
+
+      .btn.cancel-btn {
+        background: #e0e0e0;
+        color: #333;
+
+        &:hover {
+          background: #d0d0d0;
+        }
+      }
+    }
+
+    .youtube-item .remove-btn {
+      background: rgba(0, 0, 0, 0.5);
+
+      &:hover {
+        background: rgba(220, 38, 38, 0.8);
+      }
+    }
+  }
+}
+
+// Attachments Section (dark theme default)
+.attachments-section {
+  .section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 0.5em;
+
+    .section-label {
+      font-size: 0.85em;
+      font-weight: 500;
+      color: #888;
+      margin: 0;
+    }
+
+    .add-btn {
+      display: flex;
+      align-items: center;
+      gap: 0.35em;
+      padding: 0.35em 0.75em;
+      border: none;
+      border-radius: 0.25em;
+      background: transparent;
+      color: #888;
+      font-size: 0.85em;
+      cursor: pointer;
+      transition: all 0.15s ease;
+
+      &:hover {
+        background: #3a3a3a;
+        color: #fff;
+      }
+    }
+  }
+
+  .empty-state {
+    padding: 1.5em;
+    border: 1px dashed #444;
+    border-radius: 0.4em;
+    background: #1e1e1e;
+    text-align: center;
+    color: #666;
+    font-size: 0.9em;
+  }
+
+  .attachments-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5em;
+
+    .attachment-item {
+      display: flex;
+      align-items: center;
+      gap: 0.75em;
+      padding: 0.5em;
+      border: 1px solid #444;
+      border-radius: 0.35em;
+      background: #252525;
+
+      .attachment-preview {
+        width: 48px;
+        height: 48px;
+        border-radius: 0.25em;
+        overflow: hidden;
+        flex-shrink: 0;
+
+        img {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+        }
+      }
+
+      .attachment-icon {
+        width: 48px;
+        height: 48px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 0.25em;
+        background: #3a3a3a;
+        color: #888;
+        flex-shrink: 0;
+      }
+
+      .attachment-info {
+        flex: 1;
+        min-width: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 0.15em;
+
+        .attachment-name {
+          font-size: 0.9em;
+          color: #eee;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+
+        .attachment-size {
+          font-size: 0.75em;
+          color: #888;
+        }
+      }
+
+      .attachment-actions {
+        display: flex;
+        gap: 0.25em;
+        flex-shrink: 0;
+
+        .action-btn {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          width: 2em;
+          height: 2em;
+          border: none;
+          border-radius: 0.25em;
+          background: transparent;
+          color: #888;
+          cursor: pointer;
+          transition: all 0.15s ease;
+
+          &:hover {
+            background: #3a3a3a;
+            color: #fff;
+          }
+
+          &.delete:hover {
+            background: #7f1d1d;
+            color: #fca5a5;
+          }
+        }
+      }
+    }
+  }
+}
+
+// YouTube Section (dark theme default)
+.youtube-section {
+  .section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 0.5em;
+
+    .section-label {
+      font-size: 0.85em;
+      font-weight: 500;
+      color: #888;
+      margin: 0;
+    }
+
+    .add-btn {
+      display: flex;
+      align-items: center;
+      gap: 0.35em;
+      padding: 0.35em 0.75em;
+      border: none;
+      border-radius: 0.25em;
+      background: transparent;
+      color: #888;
+      font-size: 0.85em;
+      cursor: pointer;
+      transition: all 0.15s ease;
+
+      &:hover {
+        background: #3a3a3a;
+        color: #fff;
+      }
+    }
+  }
+
+  .empty-state {
+    padding: 1.5em;
+    border: 1px dashed #444;
+    border-radius: 0.4em;
+    background: #1e1e1e;
+    text-align: center;
+    color: #666;
+    font-size: 0.9em;
+  }
+
+  .youtube-input-container {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5em;
+    margin-bottom: 0.75em;
+
+    .youtube-input {
+      padding: 0.6em 0.75em;
+      border: 1px solid #444;
+      border-radius: 0.35em;
+      background: #1e1e1e;
+      color: #eee;
+      font-size: 0.95em;
+      outline: none;
+
+      &:focus {
+        border-color: #3b82f6;
+      }
+
+      &::placeholder {
+        color: #666;
+      }
+    }
+
+    .input-actions {
+      display: flex;
+      gap: 0.5em;
+      justify-content: flex-end;
+
+      .btn {
+        padding: 0.4em 0.85em;
+        border: none;
+        border-radius: 0.25em;
+        font-size: 0.85em;
+        cursor: pointer;
+        transition: all 0.15s ease;
+
+        &.save-btn {
+          background: #22c55e;
+          color: white;
+
+          &:hover {
+            background: #16a34a;
+          }
+        }
+
+        &.cancel-btn {
+          background: #4a4a4a;
+          color: #eee;
+
+          &:hover {
+            background: #5a5a5a;
+          }
+        }
+      }
+    }
+
+    .error-message {
+      color: #f87171;
+      font-size: 0.8em;
+    }
+  }
+
+  .youtube-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 0.75em;
+
+    .youtube-item {
+      position: relative;
+      border-radius: 0.35em;
+      overflow: hidden;
+
+      .youtube-thumbnail {
+        position: relative;
+        aspect-ratio: 16 / 9;
+
+        img {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+        }
+
+        .play-overlay {
+          position: absolute;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          background: rgba(0, 0, 0, 0.3);
+          color: white;
+          opacity: 0;
+          transition: opacity 0.15s ease;
+
+          &:hover {
+            opacity: 1;
+          }
+        }
+      }
+
+      .remove-btn {
+        position: absolute;
+        top: 0.35em;
+        right: 0.35em;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 1.75em;
+        height: 1.75em;
+        border: none;
+        border-radius: 0.25em;
+        background: rgba(0, 0, 0, 0.6);
+        color: white;
+        cursor: pointer;
+        opacity: 0;
+        transition: all 0.15s ease;
+
+        &:hover {
+          background: rgba(220, 38, 38, 0.9);
+        }
+      }
+
+      &:hover {
+        .play-overlay {
+          opacity: 1;
+        }
+
+        .remove-btn {
+          opacity: 1;
+        }
+      }
+    }
+  }
+}

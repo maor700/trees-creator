@@ -17,4 +17,5 @@ export interface ActionPanelProps {
     treeData?: TreeClass,
     hasChildren?: boolean,
     toggleRow?: (ev:any, force?: boolean) => void,
+    onOpenDetails?: () => void,
 }

@@ -1,20 +1,23 @@
 import { ChangeEventHandler, FC, useContext, useEffect, useState } from "react";
 import { useToggle } from "../../../hooks";
 import { TreeItem } from "../../../models/TreeItem";
+import { TreeItemData } from "../../../models/TreeItemData";
 import { BsThreeDots } from "react-icons/bs"
 import { FaChevronDown, FaChevronUp } from "react-icons/fa"
 import { TreeNode } from "../TreeNode/TreeNode"
 import { ModalJunior } from "../../ModalJunior/ModalJunior";
 import { Blurred } from "../../Blurred/Blurred";
+import { ItemDetailsModal } from "../../ItemDetailsModal";
 import { treeCtx } from "../Tree";
 import { ORIGINS } from "../";
 import "./NodeRow.scss";
 
-export const NodeRow: FC<{ treeItem: TreeItem, childrenItems: TreeItem[] }> = ({ treeItem, childrenItems }) => {
+export const NodeRow: FC<{ treeItem: TreeItem<TreeItemData>, childrenItems: TreeItem<TreeItemData>[] }> = ({ treeItem, childrenItems }) => {
     const { name, id, selected } = treeItem;
     const { onRowChecked, onRowToggle, actionPanelComponent: ActionPanelComponent, onRowKeyDown } = useContext(treeCtx);
     const [showActionPanel, toggleActionPanel] = useToggle();
     const [showChildren, toggleChildren] = useToggle();
+    const [showDetailsModal, toggleDetailsModal] = useToggle();
     const [hasChildren, setHasChildren] = useState(false);
     const [origin, setOrigin] = useState<ORIGINS>(ORIGINS.TREE_NODE);
 
@@ -83,6 +86,7 @@ export const NodeRow: FC<{ treeItem: TreeItem, childrenItems: TreeItem[] }> = ({
                                         treeItem={treeItem}
                                         hasChildren={hasChildren}
                                         toggleRow={toggleChildren}
+                                        onOpenDetails={() => toggleDetailsModal(null, true)}
                                     />
                                 </ModalJunior>
                             </div>
@@ -95,6 +99,12 @@ export const NodeRow: FC<{ treeItem: TreeItem, childrenItems: TreeItem[] }> = ({
                     {childrenItems?.map(child => <TreeNode key={child.id} treeItem={child} />)}
                 </div>
             }
+            {showDetailsModal && (
+                <ItemDetailsModal
+                    treeItem={treeItem}
+                    onClose={() => toggleDetailsModal(null, false)}
+                />
+            )}
         </>
 
     )

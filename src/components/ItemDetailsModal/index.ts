@@ -1,0 +1,1 @@
+export { ItemDetailsModal } from './ItemDetailsModal';
