@@ -20,7 +20,7 @@ interface SupabaseTreeItem {
   name: string;
   parent_path: string;
   data?: Record<string, unknown>;
-  selected: number;
+  selected: 0 | 1;
   created_at?: string;
   updated_at?: string;
 }
@@ -89,7 +89,7 @@ class SyncService {
           treeId: item.tree_id,
           name: item.name,
           parentPath: item.parent_path || '',
-          selected: item.selected || 0,
+          selected: (item.selected || 0) as 0 | 1,
           data: item.data,
         }));
 
