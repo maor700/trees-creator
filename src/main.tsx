@@ -1,25 +1,13 @@
 import React from 'react'
 import ReactDOM from 'react-dom/client'
-import { registerSW } from 'virtual:pwa-register'
-import App from './App';
-import reportWebVitals from './reportWebVitals';
-import * as serviceWorkerRegistration from './serviceWorkerRegistration';
-
-import './index.css';
-
+import './index.css'
+import App from './App'
+import { AuthProvider } from './contexts/AuthContext'
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
-    <App />
-  </React.StrictMode>
+    <AuthProvider>
+      <App />
+    </AuthProvider>
+  </React.StrictMode>,
 )
-
-serviceWorkerRegistration.register();
-
-const updateSW = registerSW({
-  onNeedRefresh() {},
-  onOfflineReady() {},
-})
-
-reportWebVitals();
-

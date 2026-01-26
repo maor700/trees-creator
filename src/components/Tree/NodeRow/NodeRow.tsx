@@ -13,7 +13,7 @@ import "./NodeRow.scss";
 export const NodeRow: FC<{ treeItem: TreeItem, childrenItems: TreeItem[] }> = ({ treeItem, childrenItems }) => {
     const { name, id, selected } = treeItem;
     const { onRowChecked, onRowToggle, actionPanelComponent: ActionPanelComponent, onRowKeyDown } = useContext(treeCtx);
-    const [showActionPanel, toggleActionPanel] = useToggle(false);
+    const [showActionPanel, toggleActionPanel] = useToggle();
     const [showChildren, toggleChildren] = useToggle();
     const [hasChildren, setHasChildren] = useState(false);
     const [origin, setOrigin] = useState<ORIGINS>(ORIGINS.TREE_NODE);
@@ -33,9 +33,9 @@ export const NodeRow: FC<{ treeItem: TreeItem, childrenItems: TreeItem[] }> = ({
         onRowChecked?.(treeItem, checked)
     }
 
-    const actionPanelToggleHandler = (status?: boolean, ev?:any, origin: ORIGINS = ORIGINS.TREE_NODE) => {
+    const actionPanelToggleHandler = (status?: boolean, origin: ORIGINS = ORIGINS.TREE_NODE) => {
         setOrigin(origin);
-        toggleActionPanel(ev, status);
+        toggleActionPanel(null, status);
     }
 
     const rowClickHandler = (ev: any) => { ev?.stopPropagation(); hasChildren && toggleChildren(null) }
@@ -44,7 +44,7 @@ export const NodeRow: FC<{ treeItem: TreeItem, childrenItems: TreeItem[] }> = ({
         <>
             <div tabIndex={1} className="row" onKeyUp={(ev) => {
                 ev?.code === "Enter" && rowClickHandler(ev);
-                ev?.code === "Space" && actionPanelToggleHandler(true, ev, ORIGINS.TREE_NODE_SPACE)
+                ev?.code === "Space" && actionPanelToggleHandler(true, ORIGINS.TREE_NODE_SPACE)
                 onRowKeyDown?.(ev, treeItem);
             }}>
                 <div className="name-con" onClick={rowClickHandler} >
@@ -71,24 +71,21 @@ export const NodeRow: FC<{ treeItem: TreeItem, childrenItems: TreeItem[] }> = ({
                 {
                     ActionPanelComponent ?
                         <>
-                            <div className="actions-panel">
-                                <BsThreeDots onClick={(ev)=>actionPanelToggleHandler(true, ev, ORIGINS.TREE_NODE)} className="btn" />
+                            <div className="actions-panel" onClick={() => { actionPanelToggleHandler() }}>
+                                <BsThreeDots className="btn" />
                             </div>
-                            {showActionPanel &&
-                                <Blurred onBlur={(ev) => actionPanelToggleHandler(false, ev, ORIGINS.TREE_NODE)} shouldBlur={showActionPanel}>
-                                    <div onClick={(ev) => { ev.stopPropagation() }}>
-                                        <ModalJunior show={showActionPanel}>
-                                            <ActionPanelComponent
-                                                origin={origin}
-                                                show={showActionPanel}
-                                                toggleActionPanel={toggleActionPanel}
-                                                treeItem={treeItem}
-                                                hasChildren={hasChildren}
-                                                toggleRow={toggleChildren}
-                                            />
-                                        </ModalJunior>
-                                    </div>
-                                </Blurred>}
+                            <div onClick={(ev) => { ev.stopPropagation() }}>
+                                <ModalJunior show={showActionPanel}>
+                                    <ActionPanelComponent
+                                        origin={origin}
+                                        show={showActionPanel}
+                                        toggleActionPanel={toggleActionPanel}
+                                        treeItem={treeItem}
+                                        hasChildren={hasChildren}
+                                        toggleRow={toggleChildren}
+                                    />
+                                </ModalJunior>
+                            </div>
                         </>
                         : null
                 }

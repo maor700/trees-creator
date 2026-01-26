@@ -1,7 +1,7 @@
 import { TreeItem } from "./TreeItem"
 
 export const FIELDS_INDEXES: { [K in keyof TreeItem]: string } = {
-    id: "@id",
+    id: "++id",
     treeId: "treeId",
     parentPath: "parentPath",
     name: "name",

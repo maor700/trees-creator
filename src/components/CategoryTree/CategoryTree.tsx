@@ -14,7 +14,8 @@ interface OwnProps {
 
 export const CategoryTree: FC<OwnProps> = ({ treeData }) => {
     const { id } = treeData;
-    const root = useLiveQuery(() => treesDB.getRoot(id as string));
+    const treeIdStr = String(id);
+    const root = useLiveQuery(() => treesDB.getRoot(treeIdStr), [treeIdStr]);
 
     const getChildren = useCallback((treeItem) => {
 
@@ -25,13 +26,13 @@ export const CategoryTree: FC<OwnProps> = ({ treeData }) => {
     }, [treesDB]);
 
     const onRowKeyDownHandler = useCallback(({ code, key }, { id: itemId }) => {
-        if (key === "+" && id) {
-            treesDB.addChildNode(id, "new node", itemId)
+        if (key === "+" && treeIdStr) {
+            treesDB.addChildNode(treeIdStr, "new node", itemId)
         }
         if (code === "Delete") {
             treesDB.deleteNode(itemId);
         }
-    }, [treesDB, id])
+    }, [treeIdStr])
 
     const checkHandler = useCallback(async (treeItem, checked) => {
         return await treesDB.selectNode(treeItem.id, checked ? 1 : 0)
