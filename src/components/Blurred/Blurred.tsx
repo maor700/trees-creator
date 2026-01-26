@@ -2,7 +2,8 @@ import React, { FC, useCallback, useEffect, useMemo, useRef, useState } from "re
 interface OwnProps {
     onBlur: (ev: Event) => void
     excludedElements?: HTMLElement[]
-    shouldBlur: boolean
+    shouldBlur: boolean,
+    children: React.ReactNode
 }
 
 export const Blurred: FC<OwnProps> = ({ children, onBlur, excludedElements, shouldBlur }) => {
@@ -22,7 +23,7 @@ export const Blurred: FC<OwnProps> = ({ children, onBlur, excludedElements, shou
             if (blur === false) break;
         }
         blur && onBlur(ev);
-    }, [shouldBlur]);
+    }, [shouldBlur, onBlur, excludedElements]);
 
     const escapeHandler = useCallback((ev) => {
         ev?.code === "Escape" && onBlur(ev)
@@ -43,7 +44,7 @@ export const Blurred: FC<OwnProps> = ({ children, onBlur, excludedElements, shou
 
     return (
         <div ref={blurredElmRef} onClick={(ev) => { ev.stopPropagation(); }} className="blurred">
-            {children}
+           {children}
         </div>
     )
 }

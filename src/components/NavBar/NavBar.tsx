@@ -1,6 +1,5 @@
 import { useLiveQuery } from "dexie-react-hooks";
-import react, { useCallback, useEffect, useMemo } from "react";
-import { useObservable } from 'react-use';
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useToggle } from "../../hooks";
 import { TreeClass } from "../../models/Tree";
 import { MAX_TREES, treesDB } from "../../models/treesDb";
@@ -10,19 +9,20 @@ import { Blurred } from "../Blurred/Blurred";
 import { ModalJunior } from "../ModalJunior/ModalJunior";
 import { MdSave, MdDelete, MdAdd } from "react-icons/md"
 import { VscSaveAs } from "react-icons/vsc";
+import { useAuth } from "../../contexts/AuthContext";
+import { AuthForm } from "../Auth/AuthForm";
 import "./NavBar.scss";
 
 
 export const NavBar = () => {
-    const currentUser = useObservable(treesDB.cloud.currentUser);
+    const { user, signOut } = useAuth();
+    const [showAuthForm, setShowAuthForm] = useState(false);
     const states: TreesStates[] = useLiveQuery(async () => treesDB.treesStates.toArray(), [], []);
     const trees = useLiveQuery<TreeClass[], TreeClass[]>(async () => (await treesDB.trees.toArray()), [], [])
     const [isToggled, toggle] = useToggle(false);
     const selectedState = useLiveQuery<TreesStates>(async () => (await treesDB.getAppPropVal("selectedState")), [])
 
-    const login = async () => {
-        await treesDB.cloud.login({ grant_type: 'demo', userId: 'foo@demo.local' })
-    }
+    const login = () => setShowAuthForm(true);
 
     useEffect(() => {
         const ctrl_s_handler = (e: any) => {
@@ -40,7 +40,7 @@ export const NavBar = () => {
     const appIsDirt = useLiveQuery<boolean>(() => treesDB.getAppPropVal("appIsDirt"));
 
     const logout = async () => {
-        treesDB.table("$logins").clear();
+        await signOut();
     }
 
     const loadTreesState = (id: string) => {
@@ -73,10 +73,11 @@ export const NavBar = () => {
     }, [selectedState]);
 
     const maxAchived = useMemo(() => {
-        return trees.length >= MAX_TREES;
+        return (trees?.length ?? 0) >= MAX_TREES;
     }, [trees])
 
     return (
+        <>
         <nav>
             <h1>Tree Creator</h1>
             <div className="document">
@@ -86,23 +87,25 @@ export const NavBar = () => {
                     </ModalJunior>
                 </Blurred>
                 <select value={selectedState?.id} name="document-select" id="document-select" className="btn primary" onChange={onSelectChanched}>
-                    {states.map(_ => (
+                    {(states ?? []).map(_ => (
                         <option className={`${selectedState?.id === _.id ? "selcted" : ""}`} key={_.id} value={_.id}>{_.stateName}</option>
                     ))}
                 </select>
-                {appIsDirt && <div title="save document (ctrl+S)" onClick={() => save()} className={`btn primary`}>{<MdSave size="1.2em" />}</div>}
+                <div title="save document (ctrl+S)" onClick={() => appIsDirt && save()} className={`btn primary ${!appIsDirt ? 'disable' : ''}`}><MdSave size="1.2em" /></div>
                 <div onClick={toggle} title="Save as" className={`btn primary`}><VscSaveAs size="1.2em" /></div>
                 <div onClick={addTree} title={`${maxAchived ? `Limited to ${MAX_TREES} trees. Please first delete a tree in order to be able to add another ` : 'Add a new tree'}`} className={`btn primary ${maxAchived ? 'disable' : ""}`}>{<MdAdd size="1.2em" />}</div>
-                <div onClick={deleteDocument} title={`Delete Document ${selectedState?.stateName}`} className={`btn primary`}>{<MdDelete size="1.2em" />}</div>
+                <div onClick={deleteDocument} title={selectedState?.stateName ? `Delete Document ${selectedState.stateName}` : 'No document selected'} className={`btn primary ${!selectedState?.id ? 'disable' : ''}`}>{<MdDelete size="1.2em" />}</div>
             </div>
             <div className="nav-panel">
-                {currentUser?.isLoggedIn ?
-                    <div title={` Signed in as: ${currentUser.name}`} className="loggedIn">
+                {user ?
+                    <div title={`Signed in as: ${user.email}`} className="loggedIn">
                         <div onClick={logout} className={`btn primary`}>Logout</div>
                     </div>
                     : <div onClick={login} className={`btn primary`}>Login</div>
                 }
             </div>
         </nav>
+        {showAuthForm && <AuthForm onClose={() => setShowAuthForm(false)} />}
+    </>
     )
 }

@@ -1,12 +1,11 @@
-import Dexie, { liveQuery } from 'dexie';
-import dexieCloud, { DexieCloudTable } from 'dexie-cloud-addon';
+import Dexie, { Table } from 'dexie';
 import { TreeItem } from './TreeItem';
-import { INDEXES, STRING_INDEXES } from './indexes';
+import { INDEXES } from './indexes';
 import { TreeClass } from './Tree';
 import { TreesStates } from './TreesStates';
 import { AppState } from './AppState';
 
-export const TREES_DB_NAME = "treesDB";
+export const TREES_DB_NAME = "treesDB_local";
 const TREES_ITEMS_TABLE_NAME = "treesItems";
 const TREES_TABLE_NAME = "trees";
 const TREES_STATES_TABLE_NAME = "treesStates";
@@ -14,44 +13,62 @@ const APP_TABLE_NAME = "app";
 
 export const MAX_TREES = 4;
 
+// Generate UUID for local use
+const generateId = () => crypto.randomUUID();
+
+// Lazy-load syncService to avoid circular dependency
+let _syncService: any = null;
+const getSyncService = async () => {
+  if (!_syncService) {
+    const module = await import('../services/syncService');
+    _syncService = module.syncService;
+  }
+  return _syncService;
+};
+
+// Background sync helper - doesn't block UI
+const syncInBackground = async (fn: (syncService: any) => Promise<void>) => {
+  try {
+    const syncService = await getSyncService();
+    if (syncService.getCurrentUserId()) {
+      await fn(syncService);
+    }
+  } catch (error) {
+    console.error('Background sync error:', error);
+  }
+};
+
 export class TreesDB extends Dexie {
-  treesItems!: DexieCloudTable<TreeItem>;
-  trees!: DexieCloudTable<TreeClass>;
-  treesStates!: DexieCloudTable<TreesStates>;
-  app!: DexieCloudTable<AppState>;
+  treesItems!: Table<TreeItem, string>;
+  trees!: Table<TreeClass, string>;
+  treesStates!: Table<TreesStates, string>;
+  app!: Table<AppState, string>;
   treesItemesDirt!: boolean;
 
   constructor() {
-    super(TREES_DB_NAME, { addons: [dexieCloud] });
-    this.version(26).stores({
-      [TREES_ITEMS_TABLE_NAME]: STRING_INDEXES,
-      [TREES_TABLE_NAME]: "@id, treeName",
-      [TREES_STATES_TABLE_NAME]: "@id, treeName",
-      [APP_TABLE_NAME]: "@id, key, value",
+    super(TREES_DB_NAME);
+    // Version 131: Local-first with UUID IDs, key as primary for app table
+    // Note: Version increased from 14 to 131 to handle migration from Dexie Cloud (which was at v130)
+    this.version(131).stores({
+      [TREES_ITEMS_TABLE_NAME]: "id, treeId, parentPath, name, selected, [treeId+parentPath], [treeId+parentPath+name], [treeId+parentPath+selected], [treeId+selected], [treeId]",
+      [TREES_TABLE_NAME]: "id, treeName",
+      [TREES_STATES_TABLE_NAME]: "id, stateName",
+      [APP_TABLE_NAME]: "key",
     });
 
-    this.cloud.configure({
-      databaseUrl: process.env.REACT_APP_DBURL!,
-      tryUseServiceWorker: true,
-      requireAuth: false
-    });
-
-    this.treesItems = this.table(TREES_ITEMS_TABLE_NAME) as any;
-    this.trees = this.table(TREES_TABLE_NAME) as any;
-    this.treesStates = this.table(TREES_STATES_TABLE_NAME) as any;
-    this.app = this.table(APP_TABLE_NAME) as any;
+    this.treesItems = this.table(TREES_ITEMS_TABLE_NAME);
+    this.trees = this.table(TREES_TABLE_NAME);
+    this.treesStates = this.table(TREES_STATES_TABLE_NAME);
+    this.app = this.table(APP_TABLE_NAME);
     this.treesItems.mapToClass(TreeItem);
     this.trees.mapToClass(TreeClass);
     this.treesStates.mapToClass(TreesStates);
     this.app.mapToClass(AppState);
 
-    this.setAppPropVal("appIsDirt", false);
-
-    // appDirt
-    liveQuery(() => this.trees.toArray() && this.treesItems.toArray())
-      .subscribe(() => {
-        this.setAppPropVal<boolean>("appIsDirt", true)
-      })
+    // Initialize after DB is ready
+    this.on('ready', () => {
+      this.setAppPropVal("appIsDirt", false).catch(console.error);
+    });
   }
 
   _canAddTree = async (): Promise<boolean> => {
@@ -60,14 +77,39 @@ export class TreesDB extends Dexie {
 
   createNewTree = async (treeName = "", addRoot: boolean = true, initial: Partial<TreeClass> = {}) => {
     if (!await this._canAddTree()) return "";
-    return await this.transaction("rw", this.trees, this.treesItems, async () => {
-      const { id, ...rest } = initial;
-      const finalTree = { ...rest, treeName }
-      const treeId = await this.trees.add(finalTree);
-      addRoot && await this.addRootNode(treeId, treeName || "root");
-      !treeName && treeId && this.trees.update(treeId, { treeName: `My Tree #${treeId}` })
-      return treeId;
-    })
+
+    const treeId = generateId();
+    const finalTreeName = treeName || `My Tree #${treeId.substring(0, 4)}`;
+
+    // Spread initial first, then override with our generated values
+    // This ensures treeName defaults properly even if initial has empty treeName
+    const treeData = {
+      ...initial,
+      id: treeId,
+      treeName: finalTreeName,
+    } as TreeClass;
+
+    // Save to local Dexie first
+    await this.trees.put(treeData);
+
+    // Add root node
+    let rootNodeId: string | undefined;
+    if (addRoot) {
+      rootNodeId = await this.addRootNode(treeId, finalTreeName || "root");
+    }
+
+    // Sync to Supabase in background
+    syncInBackground(async (syncService) => {
+      await syncService.saveTreeToSupabase(treeData);
+      if (rootNodeId) {
+        const rootNode = await this.treesItems.get(rootNodeId);
+        if (rootNode) {
+          await syncService.saveTreeItemToSupabase(rootNode);
+        }
+      }
+    });
+
+    return treeId;
   }
 
   getAllTreeItemsCollection = async (treeId: string) => {
@@ -75,7 +117,7 @@ export class TreesDB extends Dexie {
   }
 
   deleteTree = async (treeId: string) => {
-    return this.transaction<boolean>("rw", this.trees, this.treesItems, async () => {
+    const result = await this.transaction<boolean>("rw", this.trees, this.treesItems, async () => {
       try {
         await this.trees.delete(treeId);
         (await this.getAllTreeItemsCollection(treeId)).delete();
@@ -85,96 +127,199 @@ export class TreesDB extends Dexie {
         return false
       }
     });
+
+    // Sync to Supabase in background
+    if (result) {
+      syncInBackground(async (syncService) => {
+        await syncService.deleteTreeFromSupabase(treeId);
+      });
+    }
+
+    return result;
   }
 
   editTree = async (treeId: string, changes: Partial<TreeClass>) => {
-    return this.trees.update(treeId, changes);
+    const result = await this.trees.update(treeId, changes);
+
+    // Sync to Supabase in background
+    syncInBackground(async (syncService) => {
+      await syncService.updateTreeInSupabase(treeId, changes);
+    });
+
+    return result;
   }
 
   duplicateTree = async (treeId: string) => {
+    if (!await this._canAddTree()) return;
 
-    return await this.transaction("rw", this.trees, this.treesItems, async () => {
-      if (!await this._canAddTree()) return;
-      // check if exist
-      const currentTree = await treesDB.trees.get(treeId);
-      if (!currentTree) return;
-      // create new Tree with no treeItems
-      const { treeName } = currentTree;
-      const newTreeId = await this.createNewTree(`${treeName}-copy`, false, currentTree);
-      if (!newTreeId) return false;
+    const currentTree = await this.trees.get(treeId);
+    if (!currentTree) return;
 
-      // get all items from current tree
-      const coll = await this.getAllTreeItemsCollection(treeId);
-      const idsMap: any = {};
+    const { treeName } = currentTree;
+    const newTreeId = await this.createNewTree(`${treeName}-copy`, false, currentTree);
+    if (!newTreeId) return false;
 
-      // iterate over them and add each with the new treeId
-      await coll.each(async (item) => {
-        const newNodeId = await this.treesItems.add({ ...item, treeId: newTreeId, id: undefined as any });
-        idsMap[item.id] = newNodeId;
-      });
+    // get all items from current tree and duplicate them
+    const items = await (await this.getAllTreeItemsCollection(treeId)).toArray();
+    const idsMap: Record<string, string> = {};
+    const newItems: TreeItem[] = [];
 
-      const newTreeColl = await this.getAllTreeItemsCollection(newTreeId);
-      await newTreeColl.modify((item, ref) => {
-        const { parentPath } = item;
-        // fix parentPath with new ids
-        const newParentPath = parentPath.split("/").map(_ => idsMap[_]).join("/")
-        const newItem = { ...item, parentPath: newParentPath };
-        ref.value = newItem;
-      })
-    })
+    for (const item of items) {
+      const newId = generateId();
+      idsMap[item.id] = newId;
+      const newItem = {
+        ...item,
+        id: newId,
+        treeId: newTreeId,
+        parentPath: item.parentPath // Will fix below
+      };
+      await this.treesItems.put(newItem);
+      newItems.push(newItem);
+    }
+
+    // Fix parentPath with new ids
+    const updatedItems = await (await this.getAllTreeItemsCollection(newTreeId)).toArray();
+    for (const item of updatedItems) {
+      if (item.parentPath) {
+        const newParentPath = item.parentPath.split("/").map(id => idsMap[id] || id).join("/");
+        await this.treesItems.update(item.id, { parentPath: newParentPath });
+        item.parentPath = newParentPath;
+      }
+    }
+
+    // Sync to Supabase in background
+    syncInBackground(async (syncService) => {
+      for (const item of updatedItems) {
+        await syncService.saveTreeItemToSupabase(item);
+      }
+    });
+
+    return newTreeId;
   }
 
   deleteAllTrees = async () => {
-    const results = await Promise.allSettled([this.trees.clear(), this.treesItems.clear()])
+    const trees = await this.trees.toArray();
+    const results = await Promise.allSettled([this.trees.clear(), this.treesItems.clear()]);
+
+    // Sync to Supabase in background
+    syncInBackground(async (syncService) => {
+      for (const tree of trees) {
+        await syncService.deleteTreeFromSupabase(tree.id!);
+      }
+    });
+
     return results.every(({ status }) => status === "fulfilled");
   }
 
   addRootNode = async (treeId: string, name: string) => {
     const alreadyExist = (await this.treesItems.where(INDEXES.tp).equals([treeId, ""]).count()) > 0;
-    if (alreadyExist) throw "Tree root node already exist";
-    return await this.treesItems.add({ treeId, name, parentPath: "" } as any);
+    if (alreadyExist) throw new Error("Tree root node already exist");
+
+    const nodeId = generateId();
+
+    const nodeData = {
+      id: nodeId,
+      treeId,
+      name,
+      parentPath: "",
+      selected: 0
+    } as TreeItem;
+
+    // Save to local Dexie
+    await this.treesItems.put(nodeData);
+
+    // Note: Sync is handled by createNewTree for root nodes
+    return nodeId;
   }
 
   addChildNode = async (treeId: string, name: string, parentId: string) => {
     const parent = await this.treesItems.get(parentId);
     if (!parent) return;
     const parentPath = parent.parentPath + parentId + "/";
-    return await this.treesItems.add({ treeId, name, parentPath } as TreeItem);
+
+    const nodeId = generateId();
+
+    const nodeData = {
+      id: nodeId,
+      treeId,
+      name,
+      parentPath,
+      selected: 0
+    } as TreeItem;
+
+    // Save to local Dexie
+    await this.treesItems.put(nodeData);
+
+    // Sync to Supabase in background
+    syncInBackground(async (syncService) => {
+      await syncService.saveTreeItemToSupabase(nodeData);
+    });
+
+    return nodeId;
   }
 
   editNode = async (nodeId: string, changes: Partial<TreeItem>) => {
-    return this.treesItems.update(nodeId, changes);
+    const result = await this.treesItems.update(nodeId, changes);
+
+    // Sync to Supabase in background
+    syncInBackground(async (syncService) => {
+      await syncService.updateTreeItemInSupabase(nodeId, changes);
+    });
+
+    return result;
   }
 
   selectNode = async (nodeId: string, status?: 1 | 0) => {
-    return this.transaction("rw", this.trees, this.treesItems, async () => {
+    const updatedIds: string[] = [];
+
+    await this.transaction("rw", this.trees, this.treesItems, async () => {
       const [item, children] = await this.getNodeAndChildren(nodeId);
       if (!item) return;
       const { selected, treeId, parentPath } = item;
 
       if (children?.length) {
-        // if all selected unselect all
         const selectedDescendantsColl = this.treesItems.where(INDEXES.tps).between([treeId, `${parentPath}${nodeId}/`, 1], [treeId, `${parentPath}${nodeId}/` + `\uffff`, 1]);
         const allDescendantsColl = await this.getNodeDescendantsCollection(nodeId);
         const descendantsCount = await allDescendantsColl?.count();
         const selectedCount = await selectedDescendantsColl.count();
         if (descendantsCount !== selectedCount) {
           await this.treesItems.update(nodeId, { selected: 1 });
-          await allDescendantsColl?.modify({ selected: 1 })
+          updatedIds.push(nodeId);
+          await allDescendantsColl?.modify((item) => {
+            item.selected = 1;
+            updatedIds.push(item.id);
+          })
         } else {
           await this.treesItems.update(nodeId, { selected: 0 });
-          await allDescendantsColl?.modify({ selected: 0 })
+          updatedIds.push(nodeId);
+          await allDescendantsColl?.modify((item) => {
+            item.selected = 0;
+            updatedIds.push(item.id);
+          })
         }
-        // else select all
       } else {
-        this.treesItems.update(nodeId, { selected: status ?? selected ? 1 : 0 });
-        const [tree, children] = await this.getRootAndChildren(nodeId);
+        const newSelected = status ?? (selected ? 0 : 1);
+        this.treesItems.update(nodeId, { selected: newSelected });
+        updatedIds.push(nodeId);
       }
-    })
+    });
+
+    // Sync to Supabase in background
+    syncInBackground(async (syncService) => {
+      for (const id of updatedIds) {
+        const item = await this.treesItems.get(id);
+        if (item) {
+          await syncService.updateTreeItemInSupabase(id, { selected: item.selected });
+        }
+      }
+    });
   }
 
   deleteNode = async (nodeId: string) => {
-    return this.transaction("rw", this.treesItems, async () => {
+    const nodeToDelete = await this.treesItems.get(nodeId);
+    const descendants = await (await this.getNodeDescendantsCollection(nodeId))?.toArray() || [];
+
+    const result = await this.transaction("rw", this.treesItems, async () => {
       try {
         const coll = await this.getNodeDescendantsCollection(nodeId);
         await this.treesItems.delete(nodeId);
@@ -184,7 +329,19 @@ export class TreesDB extends Dexie {
         console.error(error);
         return false;
       }
-    })
+    });
+
+    // Sync to Supabase in background
+    if (result) {
+      syncInBackground(async (syncService) => {
+        await syncService.deleteTreeItemFromSupabase(nodeId);
+        for (const desc of descendants) {
+          await syncService.deleteTreeItemFromSupabase(desc.id);
+        }
+      });
+    }
+
+    return result;
   }
 
   getRoot = async (treeId: string) => {
@@ -213,9 +370,7 @@ export class TreesDB extends Dexie {
   getNodeDescendantsCollection = async (nodeId: string) => {
     const { treeId, parentPath } = await this.treesItems.get(nodeId) ?? {};
     if (!(treeId ?? treeId)) return;
-    /* eslint-disable */
     return await this.treesItems.where(INDEXES.tp).between([treeId, `${parentPath}${nodeId}/`], [treeId, `${parentPath}${nodeId}/` + `\uffff`])
-    /* eslint-disable */
   }
 
   // app table utils
@@ -229,42 +384,40 @@ export class TreesDB extends Dexie {
   }
 
   setAppPropVal = async<T = any>(propName: string, value: T) => {
-    const propExist = !!(await this.getAppPropColl(propName).first());
-    if (propExist) {
-      return !!((await this.getAppPropColl(propName).modify({ value })))
-    } else {
-      return !!(await this.app.add({ key: propName, value }))
-    }
+    // Use put which will insert or update based on key
+    return !!(await this.app.put({ key: propName, value } as AppState))
   }
 
-  /// Trees States
+  /// Trees States - kept local only for now
 
   _saveTreesState = async ({ stateName, id }: { stateName?: string, id?: string }) => (
     this.transaction("rw", this.treesStates, this.treesItems, this.trees, async () => {
       const trees = await this.trees.toArray();
       const treesItems = await this.treesItems.toArray();
       let stateToSave: TreesStates = { trees, treesItems, stateName };
-      //update selected state
       if (id) stateToSave.id = id;
       return await this.treesStates.put(stateToSave);
     })
   )
 
   saveCurrentTree = async (stateName?: string) => {
-    const { id, stateName: currName } = await this.getAppPropVal<TreesStates>("selectedState");
+    const selectedState = await this.getAppPropVal<TreesStates>("selectedState");
+    if (!selectedState) return false;
+    const { id, stateName: currName } = selectedState;
     const secceed = await this._saveTreesState({ stateName: stateName ?? currName, id });
     return secceed && await this.setAppPropVal("appIsDirt", false);
   }
 
   saveNewState = async (stateName: string) => {
-    return this._saveTreesState({ stateName });
+    const id = generateId();
+    return this._saveTreesState({ stateName, id });
   }
 
   loadTreesState = async (id: string) => {
     return this.transaction("rw", this.treesStates, this.treesItems, this.trees, this.app, async () => {
       const state = await this.treesStates.get(id);
       if (!state) return false;
-      const { trees, treesItems, stateName } = state;
+      const { trees, treesItems } = state;
       await this.trees.clear();
       await this.treesItems.clear();
       await this.trees.bulkPut(trees);
@@ -278,29 +431,12 @@ export class TreesDB extends Dexie {
   }
 
   deleteState = async (id: string) => {
-    this.transaction("rw", this.treesStates, this.treesItems, this.trees,this.app, async () => {
+    this.transaction("rw", this.treesStates, this.treesItems, this.trees, this.app, async () => {
       await this.treesStates.delete(id);
       const newSelectedSate = await this.treesStates.toCollection().first();
       newSelectedSate?.id && await this.loadTreesState(newSelectedSate?.id);
     })
   }
-
 }
 
 export const treesDB = new TreesDB();
-console.log(treesDB);
-
-// treesDB.on("ready", async () => {
-//   const treeId = await treesDB.createNewTree("Categories");
-//   if (!treeId) return;
-//   const { id, parentPath } = (await treesDB.getRoot(treeId)) || {};
-//   const finalParentPath = parentPath + id + "/";
-//   return await treesDB.treesItems.bulkAdd(([
-//     { treeId, name: "Action", parentPath: finalParentPath } as TreeItem,
-//     { treeId, name: "Comedy", parentPath: finalParentPath } as TreeItem,
-//     { treeId, name: "Drama", parentPath: finalParentPath } as TreeItem,
-//     { treeId, name: "Fantasy", parentPath: finalParentPath } as TreeItem,
-//     { treeId, name: "Horror", parentPath: finalParentPath } as TreeItem,
-//     { treeId, name: "Mystery", parentPath: finalParentPath } as TreeItem,
-//   ]))
-// })

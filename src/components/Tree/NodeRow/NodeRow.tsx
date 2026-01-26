@@ -71,24 +71,21 @@ export const NodeRow: FC<{ treeItem: TreeItem, childrenItems: TreeItem[] }> = ({
                 {
                     ActionPanelComponent ?
                         <>
-                            <div className="actions-panel">
-                                <BsThreeDots onClick={() => { actionPanelToggleHandler() }} className="btn" />
+                            <div className="actions-panel" onClick={() => { actionPanelToggleHandler() }}>
+                                <BsThreeDots className="btn" />
                             </div>
-                            {showActionPanel &&
-                                <Blurred onBlur={(ev) => actionPanelToggleHandler(false)} shouldBlur={showActionPanel}>
-                                    <div onClick={(ev) => { ev.stopPropagation() }}>
-                                        <ModalJunior show={showActionPanel}>
-                                            <ActionPanelComponent
-                                                origin={origin}
-                                                show={showActionPanel}
-                                                toggleActionPanel={toggleActionPanel}
-                                                treeItem={treeItem}
-                                                hasChildren={hasChildren}
-                                                toggleRow={toggleChildren}
-                                            />
-                                        </ModalJunior>
-                                    </div>
-                                </Blurred>}
+                            <div onClick={(ev) => { ev.stopPropagation() }}>
+                                <ModalJunior show={showActionPanel}>
+                                    <ActionPanelComponent
+                                        origin={origin}
+                                        show={showActionPanel}
+                                        toggleActionPanel={toggleActionPanel}
+                                        treeItem={treeItem}
+                                        hasChildren={hasChildren}
+                                        toggleRow={toggleChildren}
+                                    />
+                                </ModalJunior>
+                            </div>
                         </>
                         : null
                 }

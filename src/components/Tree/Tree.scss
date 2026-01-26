@@ -14,17 +14,22 @@
     min-width: 200px;
     .head-row {
         position: relative;
+        display: flex;
+        align-items: center;
         h4 {
             margin: 0 0;
             /* padding-block-end: 0.5em; */
             /* border-bottom: 1px solid #4b8062; */
-            width: calc(100% - 2em);
+            flex: 1;
+            min-width: 0;
             font-weight: normal;
         }
         .actions-panel {
             position: relative;
             display: inline-flex;
             align-items: center;
+            flex-shrink: 0;
+            z-index: 10;
         }
     }
 }

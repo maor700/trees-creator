@@ -32,9 +32,9 @@ export const Tree: FC<TreeProps> = (props) => {
         <treeCtx.Provider value={props}>
             <div className={`tree-con grid-stick-layout ${multiSelect ? "multi-select-mode" : ""} ${lightMode ? "light-theme" : ""} ${rtl ? "rtl" : ""}`}>
                 <div className="head-row header truncate">
-                    <h4 title={treeName} className="truncate">{treeName}</h4>
-                    <div ref={menuBtnRef} className="actions-panel">
-                        <BsThreeDots onClick={toggleActionPanel} className="btn" />
+                    <h4 title={treeName || 'Untitled'} className="truncate">{treeName || 'Untitled'}</h4>
+                    <div ref={menuBtnRef} className="actions-panel" onClick={toggleActionPanel}>
+                        <BsThreeDots className="btn" />
                     </div>
                     <Blurred shouldBlur={showActionPanel} excludedElements={menuBtnRef.current ? [menuBtnRef.current] : []} onBlur={(ev) => toggleActionPanel(ev, false)}>
                         <ModalJunior show={showActionPanel}>
