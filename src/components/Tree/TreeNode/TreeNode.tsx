@@ -16,7 +16,7 @@ export const TreeNode: FC<{ treeItem: TreeItem }> = ({ treeItem }) => {
                 setChildrenItems(childrenItems);
             });
         return () => { subscription?.unsubscribe() };
-    }, [getNodeChildren, treeItem.id])
+    }, [getNodeChildren])
 
     return (<div className="t-node" key={id}>
         <Pipes />

@@ -1,5 +1,4 @@
 import { supabase } from '../lib/supabase';
-import { RealtimeChannel } from '@supabase/supabase-js';
 import { TreeClass } from '../models/Tree';
 import { TreeItem } from '../models/TreeItem';
 import { TreesStates } from '../models/TreesStates';
@@ -49,17 +48,6 @@ const getTreesDB = async () => {
 
 class SyncService {
   private currentUserId: string | null = null;
-  private realtimeChannel: RealtimeChannel | null = null;
-  private isProcessingRemoteChange = false;
-
-  // Flag to prevent echoing back our own changes
-  setProcessingRemoteChange(value: boolean) {
-    this.isProcessingRemoteChange = value;
-  }
-
-  isRemoteChangeInProgress() {
-    return this.isProcessingRemoteChange;
-  }
 
   async loadFromSupabase(userId: string) {
     this.currentUserId = userId;
@@ -150,142 +138,13 @@ class SyncService {
       }
 
       console.log(`Loaded ${trees?.length || 0} trees, ${treeItems?.length || 0} items, and ${treeStates?.length || 0} states from Supabase`);
-
-      // Set up realtime subscriptions after initial load
-      await this.subscribeToRealtimeChanges(userId);
     } catch (error) {
       console.error('Error syncing from Supabase:', error);
     }
   }
 
-  async subscribeToRealtimeChanges(userId: string) {
-    // Unsubscribe from existing channel if any
-    if (this.realtimeChannel) {
-      await supabase.removeChannel(this.realtimeChannel);
-      this.realtimeChannel = null;
-    }
-
-    const treesDB = await getTreesDB();
-
-    // Create a single channel for all table changes
-    this.realtimeChannel = supabase
-      .channel(`user-changes-${userId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'trees',
-          filter: `user_id=eq.${userId}`,
-        },
-        async (payload) => {
-          console.log('Realtime trees change:', payload.eventType);
-          this.isProcessingRemoteChange = true;
-          try {
-            if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
-              const t = payload.new as SupabaseTree;
-              const localTree: TreeClass = {
-                id: t.id,
-                treeName: t.tree_name,
-                rtl: t.rtl,
-                lightMode: t.light_mode,
-                multiSelect: t.multi_select,
-              };
-              await treesDB.trees.put(localTree);
-            } else if (payload.eventType === 'DELETE') {
-              const oldTree = payload.old as { id: string };
-              if (oldTree.id) {
-                await treesDB.trees.delete(oldTree.id);
-              }
-            }
-          } finally {
-            this.isProcessingRemoteChange = false;
-          }
-        }
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'tree_items',
-          filter: `user_id=eq.${userId}`,
-        },
-        async (payload) => {
-          console.log('Realtime tree_items change:', payload.eventType);
-          this.isProcessingRemoteChange = true;
-          try {
-            if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
-              const item = payload.new as SupabaseTreeItem;
-              const localItem: TreeItem = {
-                id: item.id,
-                treeId: item.tree_id,
-                name: item.name,
-                parentPath: item.parent_path || '',
-                selected: (item.selected || 0) as 0 | 1,
-                data: item.data,
-              };
-              await treesDB.treesItems.put(localItem);
-            } else if (payload.eventType === 'DELETE') {
-              const oldItem = payload.old as { id: string };
-              if (oldItem.id) {
-                await treesDB.treesItems.delete(oldItem.id);
-              }
-            }
-          } finally {
-            this.isProcessingRemoteChange = false;
-          }
-        }
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'tree_states',
-          filter: `user_id=eq.${userId}`,
-        },
-        async (payload) => {
-          console.log('Realtime tree_states change:', payload.eventType);
-          this.isProcessingRemoteChange = true;
-          try {
-            if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
-              const s = payload.new as SupabaseTreeState;
-              const localState: TreesStates = {
-                id: s.id,
-                stateName: s.state_name,
-                trees: s.trees || [],
-                treesItems: s.tree_items || [],
-              };
-              await treesDB.treesStates.put(localState);
-            } else if (payload.eventType === 'DELETE') {
-              const oldState = payload.old as { id: string };
-              if (oldState.id) {
-                await treesDB.treesStates.delete(oldState.id);
-              }
-            }
-          } finally {
-            this.isProcessingRemoteChange = false;
-          }
-        }
-      )
-      .subscribe((status) => {
-        console.log('Realtime subscription status:', status);
-      });
-  }
-
-  async unsubscribeFromRealtime() {
-    if (this.realtimeChannel) {
-      await supabase.removeChannel(this.realtimeChannel);
-      this.realtimeChannel = null;
-    }
-  }
-
   async clearLocalData() {
     try {
-      // Unsubscribe from realtime first
-      await this.unsubscribeFromRealtime();
-
       const treesDB = await getTreesDB();
       await treesDB.trees.clear();
       await treesDB.treesItems.clear();

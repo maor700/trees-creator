@@ -458,28 +458,20 @@ export class TreesDB extends Dexie {
   }
 
   loadTreesState = async (id: string) => {
-    // Set loading flag to prevent UI flicker during state transition
-    await this.setAppPropVal("loadingState", true);
-
-    try {
-      return await this.transaction("rw", this.treesStates, this.treesItems, this.trees, this.app, async () => {
-        const state = await this.treesStates.get(id);
-        if (!state) return false;
-        const { trees, treesItems } = state;
-        await this.trees.clear();
-        await this.treesItems.clear();
-        await this.trees.bulkPut(trees);
-        await this.treesItems.bulkPut(treesItems);
-        await this.setAppPropVal("selectedState", state);
-        setTimeout(async () => {
-          await this.setAppPropVal("appIsDirt", false);
-        }, 100)
-        return true;
-      });
-    } finally {
-      // Clear loading flag after transition completes
-      await this.setAppPropVal("loadingState", false);
-    }
+    return this.transaction("rw", this.treesStates, this.treesItems, this.trees, this.app, async () => {
+      const state = await this.treesStates.get(id);
+      if (!state) return false;
+      const { trees, treesItems } = state;
+      await this.trees.clear();
+      await this.treesItems.clear();
+      await this.trees.bulkPut(trees);
+      await this.treesItems.bulkPut(treesItems);
+      await this.setAppPropVal("selectedState", state);
+      setTimeout(async () => {
+        await this.setAppPropVal("appIsDirt", false);
+      }, 100)
+      return true;
+    });
   }
 
   deleteState = async (id: string) => {

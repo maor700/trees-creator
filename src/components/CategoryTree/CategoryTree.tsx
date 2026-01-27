@@ -17,12 +17,13 @@ export const CategoryTree: FC<OwnProps> = ({ treeData }) => {
     const treeIdStr = String(id);
     const root = useLiveQuery(() => treesDB.getRoot(treeIdStr), [treeIdStr]);
 
-    const getChildren = useCallback((treeItem: TreeItem) => {
+    const getChildren = useCallback((treeItem) => {
+
         return from(liveQuery(async () => {
             const children = (await (await treesDB.getNodeChildrenCollection(treeItem.id as string))?.toArray() ?? [])
             return children as TreeItem[];
         }))
-    }, [treeIdStr]);
+    }, [treesDB]);
 
     const onRowKeyDownHandler = useCallback(({ code, key }, { id: itemId }) => {
         if (key === "+" && treeIdStr) {
