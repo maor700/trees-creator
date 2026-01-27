@@ -17,6 +17,13 @@ function App() {
     []
   );
 
+  // Track loading state to prevent UI flicker during state transitions
+  const loadingState = useLiveQuery(
+    () => treesDB.getAppPropVal<boolean>('loadingState'),
+    [],
+    false
+  );
+
   // Sync with Supabase when user changes
   useEffect(() => {
     if (user) {
@@ -46,6 +53,8 @@ function App() {
             <h2>Welcome to Trees Creator</h2>
             <p>Please login to view and manage your trees.</p>
           </div>
+        ) : loadingState ? (
+          <div className="loading">Loading state...</div>
         ) : (
           (trees ?? []).map(tree => <CategoryTree key={tree.id} treeData={tree} />)
         )}
