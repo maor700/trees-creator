@@ -1,5 +1,5 @@
 import { useLiveQuery } from "dexie-react-hooks";
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef } from "react";
 import { useToggle } from "../../hooks";
 import { TreeClass } from "../../models/Tree";
 import { MAX_TREES, treesDB } from "../../models/treesDb";
@@ -10,20 +10,16 @@ import { ModalJunior } from "../ModalJunior/ModalJunior";
 import { MdSave, MdDelete, MdAdd } from "react-icons/md"
 import { VscSaveAs } from "react-icons/vsc";
 import { useAuth } from "../../contexts/AuthContext";
-import { AuthForm } from "../Auth/AuthForm";
 import "./NavBar.scss";
 
 
 export const NavBar = () => {
-    const { user, signOut } = useAuth();
-    const [showAuthForm, setShowAuthForm] = useState(false);
+    const { user, login, logout } = useAuth();
     const states: TreesStates[] = useLiveQuery(async () => treesDB.treesStates.toArray(), [], []);
     const trees = useLiveQuery<TreeClass[], TreeClass[]>(async () => (await treesDB.trees.toArray()), [], [])
     const [isToggled, toggle] = useToggle(false);
     const saveAsBtnRef = useRef<HTMLDivElement>(null);
     const selectedState = useLiveQuery<TreesStates>(async () => (await treesDB.getAppPropVal("selectedState")), [])
-
-    const login = () => setShowAuthForm(true);
 
     useEffect(() => {
         const ctrl_s_handler = (e: any) => {
@@ -39,10 +35,6 @@ export const NavBar = () => {
     }, [])
 
     const appIsDirt = useLiveQuery<boolean>(() => treesDB.getAppPropVal("appIsDirt"));
-
-    const logout = async () => {
-        await signOut();
-    }
 
     const loadTreesState = (id: string) => {
         return treesDB.loadTreesState(id)
@@ -78,7 +70,6 @@ export const NavBar = () => {
     }, [trees])
 
     return (
-        <>
         <nav>
             <h1>Tree Creator</h1>
             <div className="document">
@@ -106,7 +97,5 @@ export const NavBar = () => {
                 }
             </div>
         </nav>
-        {showAuthForm && <AuthForm onClose={() => setShowAuthForm(false)} />}
-    </>
     )
 }

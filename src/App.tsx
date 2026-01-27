@@ -4,8 +4,7 @@ import { TreeClass } from './models/Tree';
 import { CategoryTree } from './components/CategoryTree/CategoryTree';
 import { NavBar } from './components/NavBar/NavBar';
 import { useAuth } from './contexts/AuthContext';
-import React, { useEffect } from 'react';
-import { syncService } from './services/syncService';
+import React from 'react';
 import './App.scss';
 
 function App() {
@@ -17,16 +16,7 @@ function App() {
     []
   );
 
-  // Sync with Supabase when user changes
-  useEffect(() => {
-    if (user) {
-      // User logged in - load their data from Supabase
-      syncService.loadFromSupabase(user.id);
-    } else if (!loading) {
-      // User logged out - clear local data
-      syncService.clearLocalData();
-    }
-  }, [user, loading]);
+  // Dexie Cloud handles sync automatically - no manual sync needed!
 
   if (loading) {
     return (

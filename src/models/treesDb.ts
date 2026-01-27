@@ -1,42 +1,18 @@
 import Dexie, { Table } from 'dexie';
+import dexieCloud from 'dexie-cloud-addon';
 import { TreeItem } from './TreeItem';
 import { INDEXES } from './indexes';
 import { TreeClass } from './Tree';
 import { TreesStates } from './TreesStates';
 import { AppState } from './AppState';
 
-export const TREES_DB_NAME = "treesDB_local";
+export const TREES_DB_NAME = "treesDB_cloud";
 const TREES_ITEMS_TABLE_NAME = "treesItems";
 const TREES_TABLE_NAME = "trees";
 const TREES_STATES_TABLE_NAME = "treesStates";
 const APP_TABLE_NAME = "app";
 
 export const MAX_TREES = 4;
-
-// Generate UUID for local use
-const generateId = () => crypto.randomUUID();
-
-// Lazy-load syncService to avoid circular dependency
-let _syncService: any = null;
-const getSyncService = async () => {
-  if (!_syncService) {
-    const module = await import('../services/syncService');
-    _syncService = module.syncService;
-  }
-  return _syncService;
-};
-
-// Background sync helper - doesn't block UI
-const syncInBackground = async (fn: (syncService: any) => Promise<void>) => {
-  try {
-    const syncService = await getSyncService();
-    if (syncService.getCurrentUserId()) {
-      await fn(syncService);
-    }
-  } catch (error) {
-    console.error('Background sync error:', error);
-  }
-};
 
 export class TreesDB extends Dexie {
   treesItems!: Table<TreeItem, string>;
@@ -46,14 +22,16 @@ export class TreesDB extends Dexie {
   treesItemesDirt!: boolean;
 
   constructor() {
-    super(TREES_DB_NAME);
-    // Version 131: Local-first with UUID IDs, key as primary for app table
-    // Note: Version increased from 14 to 131 to handle migration from Dexie Cloud (which was at v130)
-    this.version(131).stores({
-      [TREES_ITEMS_TABLE_NAME]: "id, treeId, parentPath, name, selected, [treeId+parentPath], [treeId+parentPath+name], [treeId+parentPath+selected], [treeId+selected], [treeId]",
-      [TREES_TABLE_NAME]: "id, treeName",
-      [TREES_STATES_TABLE_NAME]: "id, stateName",
-      [APP_TABLE_NAME]: "key",
+    super(TREES_DB_NAME, { addons: [dexieCloud] });
+
+    // Version 132: Dexie Cloud with @ prefix for synced tables
+    // @ prefix = synced with auto-generated cloud IDs
+    // No @ prefix = local only
+    this.version(132).stores({
+      [TREES_ITEMS_TABLE_NAME]: "@id, treeId, parentPath, name, selected, [treeId+parentPath], [treeId+parentPath+name], [treeId+parentPath+selected], [treeId+selected], [treeId]",
+      [TREES_TABLE_NAME]: "@id, treeName",
+      [TREES_STATES_TABLE_NAME]: "@id, stateName",
+      [APP_TABLE_NAME]: "key", // Local only (no @)
     });
 
     this.treesItems = this.table(TREES_ITEMS_TABLE_NAME);
@@ -64,6 +42,12 @@ export class TreesDB extends Dexie {
     this.trees.mapToClass(TreeClass);
     this.treesStates.mapToClass(TreesStates);
     this.app.mapToClass(AppState);
+
+    // Configure Dexie Cloud
+    this.cloud.configure({
+      databaseUrl: import.meta.env.VITE_DEXIE_CLOUD_URL || 'https://zu80g6353.dexie.cloud',
+      requireAuth: true,
+    });
 
     // Initialize after DB is ready
     this.on('ready', () => {
@@ -78,41 +62,28 @@ export class TreesDB extends Dexie {
   createNewTree = async (treeName = "", addRoot: boolean = true, initial: Partial<TreeClass> = {}) => {
     if (!await this._canAddTree()) return "";
 
-    const treeId = generateId();
-    const finalTreeName = treeName || `My Tree #${treeId.substring(0, 4)}`;
-
     // Spread initial first, then override with our generated values
     // This ensures treeName defaults properly even if initial has empty treeName
     const treeData = {
       ...initial,
-      id: treeId,
-      treeName: finalTreeName,
+      treeName: treeName || `My Tree #${Date.now().toString(36)}`,
     } as TreeClass;
 
-    // Save to local Dexie first
-    await this.trees.put(treeData);
+    // Remove id from initial if present - Dexie Cloud will generate it
+    delete (treeData as any).id;
+
+    // Save to Dexie (syncs automatically via Dexie Cloud)
+    const treeId = await this.trees.add(treeData);
 
     // Add root node
-    let rootNodeId: string | undefined;
     if (addRoot) {
-      rootNodeId = await this.addRootNode(treeId, finalTreeName || "root");
+      await this.addRootNode(treeId as string, treeData.treeName || "root");
     }
 
     // Mark as dirty
     await this.setAppPropVal("appIsDirt", true);
 
-    // Sync to Supabase in background
-    syncInBackground(async (syncService) => {
-      await syncService.saveTreeToSupabase(treeData);
-      if (rootNodeId) {
-        const rootNode = await this.treesItems.get(rootNodeId);
-        if (rootNode) {
-          await syncService.saveTreeItemToSupabase(rootNode);
-        }
-      }
-    });
-
-    return treeId;
+    return treeId as string;
   }
 
   getAllTreeItemsCollection = async (treeId: string) => {
@@ -131,12 +102,8 @@ export class TreesDB extends Dexie {
       }
     });
 
-    // Sync to Supabase in background
     if (result) {
       await this.setAppPropVal("appIsDirt", true);
-      syncInBackground(async (syncService) => {
-        await syncService.deleteTreeFromSupabase(treeId);
-      });
     }
 
     return result;
@@ -144,15 +111,7 @@ export class TreesDB extends Dexie {
 
   editTree = async (treeId: string, changes: Partial<TreeClass>) => {
     const result = await this.trees.update(treeId, changes);
-
-    // Mark as dirty
     await this.setAppPropVal("appIsDirt", true);
-
-    // Sync to Supabase in background
-    syncInBackground(async (syncService) => {
-      await syncService.updateTreeInSupabase(treeId, changes);
-    });
-
     return result;
   }
 
@@ -162,26 +121,21 @@ export class TreesDB extends Dexie {
     const currentTree = await this.trees.get(treeId);
     if (!currentTree) return;
 
-    const { treeName } = currentTree;
-    const newTreeId = await this.createNewTree(`${treeName}-copy`, false, currentTree);
+    const { treeName, ...rest } = currentTree;
+    const newTreeId = await this.createNewTree(`${treeName}-copy`, false, rest);
     if (!newTreeId) return false;
 
     // get all items from current tree and duplicate them
     const items = await (await this.getAllTreeItemsCollection(treeId)).toArray();
     const idsMap: Record<string, string> = {};
-    const newItems: TreeItem[] = [];
 
     for (const item of items) {
-      const newId = generateId();
-      idsMap[item.id] = newId;
-      const newItem = {
-        ...item,
-        id: newId,
+      const { id, ...itemData } = item;
+      const newId = await this.treesItems.add({
+        ...itemData,
         treeId: newTreeId,
-        parentPath: item.parentPath // Will fix below
-      };
-      await this.treesItems.put(newItem);
-      newItems.push(newItem);
+      } as TreeItem);
+      idsMap[id] = newId as string;
     }
 
     // Fix parentPath with new ids
@@ -190,37 +144,17 @@ export class TreesDB extends Dexie {
       if (item.parentPath) {
         const newParentPath = item.parentPath.split("/").map(id => idsMap[id] || id).join("/");
         await this.treesItems.update(item.id, { parentPath: newParentPath });
-        item.parentPath = newParentPath;
       }
     }
 
-    // Mark as dirty
     await this.setAppPropVal("appIsDirt", true);
-
-    // Sync to Supabase in background
-    syncInBackground(async (syncService) => {
-      for (const item of updatedItems) {
-        await syncService.saveTreeItemToSupabase(item);
-      }
-    });
 
     return newTreeId;
   }
 
   deleteAllTrees = async () => {
-    const trees = await this.trees.toArray();
     const results = await Promise.allSettled([this.trees.clear(), this.treesItems.clear()]);
-
-    // Mark as dirty
     await this.setAppPropVal("appIsDirt", true);
-
-    // Sync to Supabase in background
-    syncInBackground(async (syncService) => {
-      for (const tree of trees) {
-        await syncService.deleteTreeFromSupabase(tree.id!);
-      }
-    });
-
     return results.every(({ status }) => status === "fulfilled");
   }
 
@@ -228,21 +162,17 @@ export class TreesDB extends Dexie {
     const alreadyExist = (await this.treesItems.where(INDEXES.tp).equals([treeId, ""]).count()) > 0;
     if (alreadyExist) throw new Error("Tree root node already exist");
 
-    const nodeId = generateId();
-
     const nodeData = {
-      id: nodeId,
       treeId,
       name,
       parentPath: "",
       selected: 0
     } as TreeItem;
 
-    // Save to local Dexie
-    await this.treesItems.put(nodeData);
+    // Save to Dexie (syncs automatically)
+    const nodeId = await this.treesItems.add(nodeData);
 
-    // Note: Sync is handled by createNewTree for root nodes
-    return nodeId;
+    return nodeId as string;
   }
 
   addChildNode = async (treeId: string, name: string, parentId: string) => {
@@ -250,47 +180,28 @@ export class TreesDB extends Dexie {
     if (!parent) return;
     const parentPath = parent.parentPath + parentId + "/";
 
-    const nodeId = generateId();
-
     const nodeData = {
-      id: nodeId,
       treeId,
       name,
       parentPath,
       selected: 0
     } as TreeItem;
 
-    // Save to local Dexie
-    await this.treesItems.put(nodeData);
+    // Save to Dexie (syncs automatically)
+    const nodeId = await this.treesItems.add(nodeData);
 
-    // Mark as dirty
     await this.setAppPropVal("appIsDirt", true);
 
-    // Sync to Supabase in background
-    syncInBackground(async (syncService) => {
-      await syncService.saveTreeItemToSupabase(nodeData);
-    });
-
-    return nodeId;
+    return nodeId as string;
   }
 
   editNode = async (nodeId: string, changes: Partial<TreeItem>) => {
     const result = await this.treesItems.update(nodeId, changes);
-
-    // Mark as dirty
     await this.setAppPropVal("appIsDirt", true);
-
-    // Sync to Supabase in background
-    syncInBackground(async (syncService) => {
-      await syncService.updateTreeItemInSupabase(nodeId, changes);
-    });
-
     return result;
   }
 
   selectNode = async (nodeId: string, status?: 1 | 0) => {
-    const updatedIds: string[] = [];
-
     await this.transaction("rw", this.trees, this.treesItems, async () => {
       const [item, children] = await this.getNodeAndChildren(nodeId);
       if (!item) return;
@@ -303,44 +214,25 @@ export class TreesDB extends Dexie {
         const selectedCount = await selectedDescendantsColl.count();
         if (descendantsCount !== selectedCount) {
           await this.treesItems.update(nodeId, { selected: 1 });
-          updatedIds.push(nodeId);
           await allDescendantsColl?.modify((item) => {
             item.selected = 1;
-            updatedIds.push(item.id);
           })
         } else {
           await this.treesItems.update(nodeId, { selected: 0 });
-          updatedIds.push(nodeId);
           await allDescendantsColl?.modify((item) => {
             item.selected = 0;
-            updatedIds.push(item.id);
           })
         }
       } else {
         const newSelected = status ?? (selected ? 0 : 1);
         this.treesItems.update(nodeId, { selected: newSelected });
-        updatedIds.push(nodeId);
       }
     });
 
-    // Mark as dirty
     await this.setAppPropVal("appIsDirt", true);
-
-    // Sync to Supabase in background
-    syncInBackground(async (syncService) => {
-      for (const id of updatedIds) {
-        const item = await this.treesItems.get(id);
-        if (item) {
-          await syncService.updateTreeItemInSupabase(id, { selected: item.selected });
-        }
-      }
-    });
   }
 
   deleteNode = async (nodeId: string) => {
-    const nodeToDelete = await this.treesItems.get(nodeId);
-    const descendants = await (await this.getNodeDescendantsCollection(nodeId))?.toArray() || [];
-
     const result = await this.transaction("rw", this.treesItems, async () => {
       try {
         const coll = await this.getNodeDescendantsCollection(nodeId);
@@ -353,15 +245,8 @@ export class TreesDB extends Dexie {
       }
     });
 
-    // Sync to Supabase in background
     if (result) {
       await this.setAppPropVal("appIsDirt", true);
-      syncInBackground(async (syncService) => {
-        await syncService.deleteTreeItemFromSupabase(nodeId);
-        for (const desc of descendants) {
-          await syncService.deleteTreeItemFromSupabase(desc.id);
-        }
-      });
     }
 
     return result;
@@ -411,28 +296,23 @@ export class TreesDB extends Dexie {
     return !!(await this.app.put({ key: propName, value } as AppState))
   }
 
-  /// Trees States - synced to Supabase
+  /// Trees States - synced via Dexie Cloud
 
   _saveTreesState = async ({ stateName, id }: { stateName?: string, id?: string }) => {
     const stateId = await this.transaction("rw", this.treesStates, this.treesItems, this.trees, async () => {
       const trees = await this.trees.toArray();
       const treesItems = await this.treesItems.toArray();
       let stateToSave: TreesStates = { trees, treesItems, stateName };
-      if (id) stateToSave.id = id;
-      else stateToSave.id = generateId();
-      await this.treesStates.put(stateToSave);
-      return stateToSave.id;
-    });
 
-    // Sync to Supabase in background
-    if (stateId) {
-      syncInBackground(async (syncService) => {
-        const state = await this.treesStates.get(stateId);
-        if (state) {
-          await syncService.saveTreeStateToSupabase(state);
-        }
-      });
-    }
+      if (id) {
+        stateToSave.id = id;
+        await this.treesStates.put(stateToSave);
+        return id;
+      } else {
+        const newId = await this.treesStates.add(stateToSave);
+        return newId as string;
+      }
+    });
 
     return stateId;
   }
@@ -453,8 +333,7 @@ export class TreesDB extends Dexie {
   }
 
   saveNewState = async (stateName: string) => {
-    const id = generateId();
-    return this._saveTreesState({ stateName, id });
+    return this._saveTreesState({ stateName });
   }
 
   loadTreesState = async (id: string) => {
@@ -479,11 +358,6 @@ export class TreesDB extends Dexie {
       await this.treesStates.delete(id);
       const newSelectedSate = await this.treesStates.toCollection().first();
       newSelectedSate?.id && await this.loadTreesState(newSelectedSate?.id);
-    });
-
-    // Sync to Supabase in background
-    syncInBackground(async (syncService) => {
-      await syncService.deleteTreeStateFromSupabase(id);
     });
   }
 }
