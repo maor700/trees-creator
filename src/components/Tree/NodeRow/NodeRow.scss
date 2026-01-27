@@ -30,10 +30,79 @@
                 }
             }
         }
+
+        // Row action buttons container
+        .row-actions {
+            display: flex;
+            align-items: center;
+            gap: 0.25em;
+            padding: 0.25em;
+            flex-shrink: 0;
+        }
+
+        // Common button styles - touch-friendly (min 44px)
+        .row-action-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 2.75em;  // ~44px for touch
+            min-height: 2.75em; // ~44px for touch
+            border: none;
+            border-radius: 0.35em;
+            cursor: pointer;
+            transition: all 0.15s ease;
+
+            // Ensure clickable area
+            position: relative;
+
+            &:active {
+                transform: scale(0.95);
+            }
+        }
+
+        // Status button
+        .status-btn {
+            padding: 0;
+
+            .status-dot {
+                width: 0.6em;
+                height: 0.6em;
+                background: rgba(255, 255, 255, 0.9);
+                border-radius: 50%;
+                box-shadow: 0 0 4px rgba(0, 0, 0, 0.3);
+            }
+
+            &:hover {
+                filter: brightness(1.15);
+                box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+            }
+        }
+
+        // Details button
+        .details-btn {
+            background: #3a3a3a;
+            color: #aaa;
+
+            &:hover {
+                background: #4a4a4a;
+                color: #fff;
+            }
+        }
+
         .actions-panel {
             flex-shrink: 0;
             position: relative;
             z-index: 10;
+
+            // Make three-dots button touch-friendly too
+            .btn {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                min-width: 2.75em;
+                min-height: 2.75em;
+                padding: 0.5em;
+            }
         }
         .expand-collaps {
             font-size: 0.9em;
@@ -55,5 +124,20 @@
         opacity: 0.4;
         border-radius: 0.3em 0 0 0.3em;
         margin-inline-end: 0.5em;
+    }
+}
+
+// Light theme adjustments
+.tree-con.light-theme {
+    .row {
+        .details-btn {
+            background: #e5e5e5;
+            color: #666;
+
+            &:hover {
+                background: #d5d5d5;
+                color: #333;
+            }
+        }
     }
 }
