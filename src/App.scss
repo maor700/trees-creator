@@ -4,6 +4,13 @@ html {
 
 body {
     background: #191919;
+
+    &.dragging {
+        touch-action: none;
+        overflow: hidden;
+        user-select: none;
+        -webkit-user-select: none;
+    }
 }
 
 .app-con {
@@ -204,6 +211,10 @@ body {
 
 .drag-btn {
     cursor: grab;
+    touch-action: none;
+    -webkit-touch-callout: none;
+    user-select: none;
+    -webkit-user-select: none;
 
     &:active {
         cursor: grabbing;

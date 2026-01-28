@@ -51,6 +51,21 @@ export const DndProvider: React.FC<DndProviderProps> = ({ children }) => {
 
   const dropZonesRef = useRef<Map<string, { element: HTMLElement; info: DropZoneInfo }>>(new Map());
   const draggedItemRef = useRef<TreeItem | null>(null);
+  const scrollIntervalRef = useRef<number | null>(null);
+  const lastClientYRef = useRef<number>(0);
+  const listenersRef = useRef<{
+    pointerMove: ((e: PointerEvent) => void) | null;
+    pointerUp: ((e: PointerEvent) => void) | null;
+    pointerCancel: (() => void) | null;
+    touchMove: ((e: TouchEvent) => void) | null;
+    touchEnd: ((e: TouchEvent) => void) | null;
+  }>({
+    pointerMove: null,
+    pointerUp: null,
+    pointerCancel: null,
+    touchMove: null,
+    touchEnd: null,
+  });
 
   const registerDropZone = useCallback((id: string, element: HTMLElement, info: DropZoneInfo) => {
     dropZonesRef.current.set(id, { element, info });
@@ -60,15 +75,69 @@ export const DndProvider: React.FC<DndProviderProps> = ({ children }) => {
     dropZonesRef.current.delete(id);
   }, []);
 
+  // Auto-scroll when dragging near edges
+  const EDGE_THRESHOLD = 80; // pixels from edge to trigger scroll
+  const SCROLL_SPEED = 8; // pixels per frame
+
+  const startAutoScroll = useCallback((clientY: number) => {
+    // Update the ref with current position
+    lastClientYRef.current = clientY;
+
+    const viewportHeight = window.innerHeight;
+
+    // If already scrolling, let the existing loop continue with updated ref
+    if (scrollIntervalRef.current) {
+      return;
+    }
+
+    const scroll = () => {
+      // Read the latest clientY from ref
+      const currentY = lastClientYRef.current;
+      const currentViewportHeight = window.innerHeight;
+
+      // Find the scrollable container (trees-con)
+      const scrollContainer = document.querySelector('.trees-con') as HTMLElement;
+
+      if (currentY < EDGE_THRESHOLD) {
+        // Near top - scroll up
+        const speed = SCROLL_SPEED * (1 - currentY / EDGE_THRESHOLD);
+        if (scrollContainer) scrollContainer.scrollTop -= speed;
+        window.scrollBy(0, -speed);
+      } else if (currentY > currentViewportHeight - EDGE_THRESHOLD) {
+        // Near bottom - scroll down
+        const speed = SCROLL_SPEED * (1 - (currentViewportHeight - currentY) / EDGE_THRESHOLD);
+        if (scrollContainer) scrollContainer.scrollTop += speed;
+        window.scrollBy(0, speed);
+      } else {
+        // Not near edges - stop scrolling
+        scrollIntervalRef.current = null;
+        return;
+      }
+
+      // Continue scrolling
+      scrollIntervalRef.current = requestAnimationFrame(scroll);
+    };
+
+    // Check if we're near an edge to start scrolling
+    if (clientY < EDGE_THRESHOLD || clientY > viewportHeight - EDGE_THRESHOLD) {
+      scrollIntervalRef.current = requestAnimationFrame(scroll);
+    }
+  }, []);
+
+  const stopAutoScroll = useCallback(() => {
+    if (scrollIntervalRef.current) {
+      cancelAnimationFrame(scrollIntervalRef.current);
+      scrollIntervalRef.current = null;
+    }
+  }, []);
+
   const findDropZoneAtPoint = useCallback((x: number, y: number): DropZoneInfo | null => {
-    // Use elementsFromPoint to find all elements at the position
     const elements = document.elementsFromPoint(x, y);
 
     for (const element of elements) {
-      // Check if this element or any parent is a registered drop zone
       let current: Element | null = element;
       while (current) {
-        for (const [id, { element: dropElement, info }] of dropZonesRef.current) {
+        for (const [, { element: dropElement, info }] of dropZonesRef.current) {
           if (current === dropElement) {
             return info;
           }
@@ -82,30 +151,24 @@ export const DndProvider: React.FC<DndProviderProps> = ({ children }) => {
   const performDrop = useCallback(async (draggedItem: TreeItem, dropInfo: DropZoneInfo) => {
     const { position, item: overItem } = dropInfo;
 
-    // Don't drop on self
     if (draggedItem.id === overItem.id) {
       return;
     }
 
-    // Prevent dropping a parent onto its own descendant
     if (overItem.parentPath.includes(draggedItem.id)) {
       return;
     }
 
     try {
       if (position === 'inside') {
-        // Move as child of the target (append to end)
         await treesDB.moveNode(
           draggedItem.id,
           overItem.id,
           overItem.treeId
         );
       } else if (position === 'before' || position === 'after') {
-        // Move as sibling - get the parent from overItem's parentPath
         const parentPath = overItem.parentPath;
 
-        // If overItem is at root level (parentPath is empty), we can't drop before/after it
-        // as that would create another root. Instead, drop as last child of overItem.
         if (!parentPath) {
           await treesDB.moveNode(
             draggedItem.id,
@@ -115,10 +178,8 @@ export const DndProvider: React.FC<DndProviderProps> = ({ children }) => {
           return;
         }
 
-        // Extract parent ID from parentPath (e.g., "abc/def/" -> "def")
         const parentId = parentPath.split('/').filter(Boolean).pop() ?? null;
 
-        // Pass the sibling info so moveNode can calculate order after normalization
         await treesDB.moveNode(
           draggedItem.id,
           parentId,
@@ -132,37 +193,44 @@ export const DndProvider: React.FC<DndProviderProps> = ({ children }) => {
     }
   }, []);
 
-  const handlePointerMove = useCallback((event: PointerEvent) => {
-    const x = event.clientX;
-    const y = event.clientY;
+  const cleanupListeners = useCallback(() => {
+    const listeners = listenersRef.current;
 
-    const dropInfo = findDropZoneAtPoint(x, y);
-
-    setDragState(prev => ({
-      ...prev,
-      position: { x, y },
-      overId: dropInfo?.id ?? null,
-      overPosition: dropInfo?.position ?? null,
-      overItem: dropInfo?.item ?? null,
-    }));
-  }, [findDropZoneAtPoint]);
-
-  const handlePointerUp = useCallback(async (event: PointerEvent) => {
-    const x = event.clientX;
-    const y = event.clientY;
-
-    const dropInfo = findDropZoneAtPoint(x, y);
-    const draggedItem = draggedItemRef.current;
-
-    if (dropInfo && draggedItem) {
-      await performDrop(draggedItem, dropInfo);
+    if (listeners.pointerMove) {
+      document.removeEventListener('pointermove', listeners.pointerMove);
+    }
+    if (listeners.pointerUp) {
+      document.removeEventListener('pointerup', listeners.pointerUp);
+    }
+    if (listeners.pointerCancel) {
+      document.removeEventListener('pointercancel', listeners.pointerCancel);
+    }
+    if (listeners.touchMove) {
+      document.removeEventListener('touchmove', listeners.touchMove);
+    }
+    if (listeners.touchEnd) {
+      document.removeEventListener('touchend', listeners.touchEnd);
+      document.removeEventListener('touchcancel', listeners.touchEnd);
     }
 
-    // Clean up
-    document.removeEventListener('pointermove', handlePointerMove);
-    document.removeEventListener('pointerup', handlePointerUp);
-    document.removeEventListener('pointercancel', handlePointerCancel);
+    listenersRef.current = {
+      pointerMove: null,
+      pointerUp: null,
+      pointerCancel: null,
+      touchMove: null,
+      touchEnd: null,
+    };
 
+    // Stop auto-scroll
+    stopAutoScroll();
+
+    // Restore body scroll behavior
+    document.body.style.touchAction = '';
+    document.body.style.overflow = '';
+    document.body.classList.remove('dragging');
+  }, [stopAutoScroll]);
+
+  const resetDragState = useCallback(() => {
     draggedItemRef.current = null;
     setDragState({
       isDragging: false,
@@ -172,26 +240,9 @@ export const DndProvider: React.FC<DndProviderProps> = ({ children }) => {
       overPosition: null,
       overItem: null,
     });
-  }, [findDropZoneAtPoint, performDrop, handlePointerMove]);
-
-  const handlePointerCancel = useCallback(() => {
-    document.removeEventListener('pointermove', handlePointerMove);
-    document.removeEventListener('pointerup', handlePointerUp);
-    document.removeEventListener('pointercancel', handlePointerCancel);
-
-    draggedItemRef.current = null;
-    setDragState({
-      isDragging: false,
-      draggedItem: null,
-      position: null,
-      overId: null,
-      overPosition: null,
-      overItem: null,
-    });
-  }, [handlePointerMove, handlePointerUp]);
+  }, []);
 
   const startDrag = useCallback((item: TreeItem, event: React.PointerEvent | React.TouchEvent | React.MouseEvent) => {
-    // Get pointer position from the event
     let x: number, y: number;
     if ('touches' in event && event.touches.length > 0) {
       x = event.touches[0].clientX;
@@ -205,6 +256,11 @@ export const DndProvider: React.FC<DndProviderProps> = ({ children }) => {
 
     draggedItemRef.current = item;
 
+    // Prevent scrolling on mobile during drag
+    document.body.style.touchAction = 'none';
+    document.body.style.overflow = 'hidden';
+    document.body.classList.add('dragging');
+
     setDragState({
       isDragging: true,
       draggedItem: item,
@@ -214,36 +270,96 @@ export const DndProvider: React.FC<DndProviderProps> = ({ children }) => {
       overItem: null,
     });
 
-    // Add document-level event listeners
-    document.addEventListener('pointermove', handlePointerMove);
-    document.addEventListener('pointerup', handlePointerUp);
-    document.addEventListener('pointercancel', handlePointerCancel);
-  }, [handlePointerMove, handlePointerUp, handlePointerCancel]);
+    // Create move handler
+    const handleMove = (clientX: number, clientY: number) => {
+      const dropInfo = findDropZoneAtPoint(clientX, clientY);
+
+      // Trigger auto-scroll when near edges
+      startAutoScroll(clientY);
+
+      setDragState(prev => ({
+        ...prev,
+        position: { x: clientX, y: clientY },
+        overId: dropInfo?.id ?? null,
+        overPosition: dropInfo?.position ?? null,
+        overItem: dropInfo?.item ?? null,
+      }));
+    };
+
+    // Create end handler
+    const handleEnd = async (clientX: number, clientY: number) => {
+      const dropInfo = findDropZoneAtPoint(clientX, clientY);
+      const draggedItem = draggedItemRef.current;
+
+      if (dropInfo && draggedItem) {
+        await performDrop(draggedItem, dropInfo);
+      }
+
+      cleanupListeners();
+      resetDragState();
+    };
+
+    // Create cancel handler
+    const handleCancel = () => {
+      cleanupListeners();
+      resetDragState();
+    };
+
+    // Pointer event handlers
+    const pointerMoveHandler = (e: PointerEvent) => {
+      e.preventDefault();
+      handleMove(e.clientX, e.clientY);
+    };
+
+    const pointerUpHandler = (e: PointerEvent) => {
+      handleEnd(e.clientX, e.clientY);
+    };
+
+    // Touch event handlers
+    const touchMoveHandler = (e: TouchEvent) => {
+      e.preventDefault();
+      if (e.touches.length > 0) {
+        handleMove(e.touches[0].clientX, e.touches[0].clientY);
+      }
+    };
+
+    const touchEndHandler = (e: TouchEvent) => {
+      if (e.changedTouches.length > 0) {
+        handleEnd(e.changedTouches[0].clientX, e.changedTouches[0].clientY);
+      } else {
+        handleCancel();
+      }
+    };
+
+    // Store listeners in ref
+    listenersRef.current = {
+      pointerMove: pointerMoveHandler,
+      pointerUp: pointerUpHandler,
+      pointerCancel: handleCancel,
+      touchMove: touchMoveHandler,
+      touchEnd: touchEndHandler,
+    };
+
+    // Add event listeners
+    document.addEventListener('pointermove', pointerMoveHandler);
+    document.addEventListener('pointerup', pointerUpHandler);
+    document.addEventListener('pointercancel', handleCancel);
+    document.addEventListener('touchmove', touchMoveHandler, { passive: false });
+    document.addEventListener('touchend', touchEndHandler);
+    document.addEventListener('touchcancel', touchEndHandler);
+  }, [findDropZoneAtPoint, performDrop, cleanupListeners, resetDragState, startAutoScroll]);
 
   const endDrag = useCallback(() => {
-    document.removeEventListener('pointermove', handlePointerMove);
-    document.removeEventListener('pointerup', handlePointerUp);
-    document.removeEventListener('pointercancel', handlePointerCancel);
-
-    draggedItemRef.current = null;
-    setDragState({
-      isDragging: false,
-      draggedItem: null,
-      position: null,
-      overId: null,
-      overPosition: null,
-      overItem: null,
-    });
-  }, [handlePointerMove, handlePointerUp, handlePointerCancel]);
+    cleanupListeners();
+    resetDragState();
+  }, [cleanupListeners, resetDragState]);
 
   // Cleanup on unmount
   useEffect(() => {
     return () => {
-      document.removeEventListener('pointermove', handlePointerMove);
-      document.removeEventListener('pointerup', handlePointerUp);
-      document.removeEventListener('pointercancel', handlePointerCancel);
+      cleanupListeners();
     };
-  }, [handlePointerMove, handlePointerUp, handlePointerCancel]);
+  }, [cleanupListeners]);
 
   const value: DndContextValue = {
     dragState,
