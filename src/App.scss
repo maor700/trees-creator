@@ -125,3 +125,87 @@ body {
         align-items: center;
     }
 }
+
+// Drag and Drop styles
+.drag-overlay {
+    background: #2a4a3a;
+    border: 2px solid #4b8062;
+    border-radius: 0.3em;
+    padding: 0.5em 1em;
+    color: #eee;
+    font-size: 0.9em;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+    cursor: grabbing;
+    white-space: nowrap;
+    max-width: 200px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+
+    .drag-overlay-name {
+        font-weight: 500;
+    }
+}
+
+.node-drop-zones {
+    position: relative;
+    width: 100%;
+}
+
+.drop-zone {
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: 6px;
+    z-index: 100;
+    transition: all 0.15s ease;
+
+    &.drop-zone-before {
+        top: -3px;
+    }
+
+    &.drop-zone-after {
+        bottom: -3px;
+    }
+
+    &.drop-zone-active {
+        background: linear-gradient(90deg, transparent, #4b8062, transparent);
+        height: 4px;
+
+        &::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 8px;
+            height: 8px;
+            background: #4b8062;
+            border-radius: 50%;
+        }
+    }
+}
+
+.node-content {
+    transition: all 0.15s ease;
+
+    &.drop-zone-inside-active {
+        background: rgba(75, 128, 98, 0.2);
+        border-radius: 0.3em;
+        outline: 2px dashed #4b8062;
+        outline-offset: 2px;
+    }
+}
+
+.t-node {
+    &.is-dragging {
+        opacity: 0.5;
+    }
+}
+
+.drag-btn {
+    cursor: grab;
+
+    &:active {
+        cursor: grabbing;
+    }
+}

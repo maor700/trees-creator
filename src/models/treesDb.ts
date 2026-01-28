@@ -24,11 +24,11 @@ export class TreesDB extends Dexie {
   constructor() {
     super(TREES_DB_NAME, { addons: [dexieCloud] });
 
-    // Version 132: Dexie Cloud with @ prefix for synced tables
+    // Version 133: Added order field for drag & drop reordering
     // @ prefix = synced with auto-generated cloud IDs
     // No @ prefix = local only
-    this.version(132).stores({
-      [TREES_ITEMS_TABLE_NAME]: "@id, treeId, parentPath, name, selected, [treeId+parentPath], [treeId+parentPath+name], [treeId+parentPath+selected], [treeId+selected], [treeId]",
+    this.version(133).stores({
+      [TREES_ITEMS_TABLE_NAME]: "@id, treeId, parentPath, name, order, selected, [treeId+parentPath], [treeId+parentPath+order], [treeId+parentPath+name], [treeId+parentPath+selected], [treeId+selected], [treeId]",
       [TREES_TABLE_NAME]: "@id, treeName",
       [TREES_STATES_TABLE_NAME]: "@id, stateName",
       [APP_TABLE_NAME]: "key", // Local only (no @)
@@ -166,6 +166,7 @@ export class TreesDB extends Dexie {
       treeId,
       name,
       parentPath: "",
+      order: 0,
       selected: 0
     } as TreeItem;
 
@@ -180,10 +181,15 @@ export class TreesDB extends Dexie {
     if (!parent) return;
     const parentPath = parent.parentPath + parentId + "/";
 
+    // Get max order among siblings to append at the end
+    const siblings = await this.treesItems.where(INDEXES.tp).equals([treeId, parentPath]).toArray();
+    const maxOrder = siblings.reduce((max, s) => Math.max(max, s.order ?? 0), -1);
+
     const nodeData = {
       treeId,
       name,
       parentPath,
+      order: maxOrder + 1,
       selected: 0
     } as TreeItem;
 
@@ -272,7 +278,148 @@ export class TreesDB extends Dexie {
   getNodeChildrenCollection = async (nodeId: string) => {
     const { treeId, parentPath, id } = await this.treesItems.get(nodeId) ?? {};
     if (!(id ?? treeId ?? treeId)) return;
+    // Return collection sorted by order
     return this.treesItems.where(INDEXES.tp).equals([treeId, `${parentPath}${id}/`] as string[]);
+  }
+
+  // Get children sorted by order field
+  getNodeChildrenSorted = async (nodeId: string): Promise<TreeItem[]> => {
+    const collection = await this.getNodeChildrenCollection(nodeId);
+    if (!collection) return [];
+    const children = await collection.toArray();
+    return children.sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+  }
+
+  /**
+   * Move a node to a new location
+   * @param nodeId - The node to move
+   * @param targetParentId - The new parent node ID (or null for root level)
+   * @param targetTreeId - The target tree ID (for cross-tree moves)
+   * @param targetOrder - The order position in the new parent
+   */
+  moveNode = async (
+    nodeId: string,
+    targetParentId: string | null,
+    targetTreeId?: string,
+    targetOrder?: number,
+    relativeTo?: { siblingId: string; position: 'before' | 'after' }
+  ) => {
+    return this.transaction("rw", this.treesItems, this.app, async () => {
+      const node = await this.treesItems.get(nodeId);
+      if (!node) return false;
+
+      const oldTreeId = node.treeId;
+      const oldParentPath = node.parentPath;
+      const newTreeId = targetTreeId ?? oldTreeId;
+
+      // Calculate new parent path
+      let newParentPath = "";
+      if (targetParentId) {
+        const targetParent = await this.treesItems.get(targetParentId);
+        if (!targetParent) return false;
+        newParentPath = targetParent.parentPath + targetParentId + "/";
+      }
+
+      // Get siblings at target location to determine order
+      const targetSiblings = await this.treesItems
+        .where(INDEXES.tp)
+        .equals([newTreeId, newParentPath])
+        .toArray();
+
+      // Filter out the node being moved
+      const filteredSiblings = targetSiblings.filter(s => s.id !== nodeId);
+
+      // First, normalize order values for all siblings
+      // Sort by existing order (undefined treated as Infinity to put them at end)
+      filteredSiblings.sort((a, b) => {
+        const orderA = a.order ?? Infinity;
+        const orderB = b.order ?? Infinity;
+        return orderA - orderB;
+      });
+
+      // Reassign sequential order values to ensure no gaps or duplicates
+      for (let i = 0; i < filteredSiblings.length; i++) {
+        if (filteredSiblings[i].order !== i) {
+          await this.treesItems.update(filteredSiblings[i].id, { order: i });
+          filteredSiblings[i].order = i;
+        }
+      }
+
+      // Determine the new order
+      let newOrder: number;
+
+      if (relativeTo) {
+        // Find the sibling we're positioning relative to (after normalization)
+        const siblingIndex = filteredSiblings.findIndex(s => s.id === relativeTo.siblingId);
+        if (siblingIndex === -1) {
+          // Sibling not found, append to end
+          newOrder = filteredSiblings.length;
+        } else {
+          const siblingOrder = filteredSiblings[siblingIndex].order ?? siblingIndex;
+          newOrder = relativeTo.position === 'before' ? siblingOrder : siblingOrder + 1;
+        }
+
+        // Shift orders of items at or after the target position
+        for (const sibling of filteredSiblings) {
+          if ((sibling.order ?? 0) >= newOrder) {
+            await this.treesItems.update(sibling.id, { order: (sibling.order ?? 0) + 1 });
+          }
+        }
+      } else if (targetOrder !== undefined) {
+        // Clamp targetOrder to valid range
+        newOrder = Math.max(0, Math.min(targetOrder, filteredSiblings.length));
+
+        // Shift orders of items at or after the target position
+        for (const sibling of filteredSiblings) {
+          if ((sibling.order ?? 0) >= newOrder) {
+            await this.treesItems.update(sibling.id, { order: (sibling.order ?? 0) + 1 });
+          }
+        }
+      } else {
+        // Append to end
+        newOrder = filteredSiblings.length;
+      }
+
+      // Update the node itself
+      await this.treesItems.update(nodeId, {
+        treeId: newTreeId,
+        parentPath: newParentPath,
+        order: newOrder
+      });
+
+      // Update all descendants if parent path or tree changed
+      if (oldParentPath !== newParentPath || oldTreeId !== newTreeId) {
+        const descendants = await this.getNodeDescendantsCollection(nodeId);
+        if (descendants) {
+          const oldPrefix = `${oldParentPath}${nodeId}/`;
+          const newPrefix = `${newParentPath}${nodeId}/`;
+
+          await descendants.modify((item) => {
+            item.treeId = newTreeId;
+            item.parentPath = item.parentPath.replace(oldPrefix, newPrefix);
+          });
+        }
+      }
+
+      await this.setAppPropVal("appIsDirt", true);
+      return true;
+    });
+  }
+
+  /**
+   * Reorder siblings within the same parent
+   * @param parentPath - The parent path
+   * @param treeId - The tree ID
+   * @param orderedIds - Array of node IDs in the desired order
+   */
+  reorderSiblings = async (parentPath: string, treeId: string, orderedIds: string[]) => {
+    return this.transaction("rw", this.treesItems, this.app, async () => {
+      for (let i = 0; i < orderedIds.length; i++) {
+        await this.treesItems.update(orderedIds[i], { order: i });
+      }
+      await this.setAppPropVal("appIsDirt", true);
+      return true;
+    });
   }
 
   getNodeDescendantsCollection = async (nodeId: string) => {

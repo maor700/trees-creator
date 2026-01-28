@@ -1,12 +1,12 @@
 import { FC, useCallback } from "react";
-import { FaPlus, FaTrash } from "react-icons/fa";
+import { FaPlus, FaTrash, FaGripVertical } from "react-icons/fa";
 import { MdEdit } from "react-icons/md";
 import { useToggle } from "../../hooks";
 import { treesDB } from "../../models/treesDb";
 import { ActionPanelProps, ORIGINS } from "../Tree";
 import { EditPanel } from "./EditPanel/EditPanel";
 
-export const RowActionsPanel: FC<ActionPanelProps> = ({ treeItem, toggleRow, toggleActionPanel, origin }) => {
+export const RowActionsPanel: FC<ActionPanelProps> = ({ treeItem, toggleRow, toggleActionPanel, origin, onStartDrag }) => {
     const [showEditNamePanel, toggleShowEditNamePanel] = useToggle(origin === ORIGINS.TREE_NODE_SPACE);
     const editName = useCallback(async (val: string) => {
         try {
@@ -45,9 +45,24 @@ export const RowActionsPanel: FC<ActionPanelProps> = ({ treeItem, toggleRow, tog
         allowed && treesDB.deleteNode(id)
     }
 
+    const handleDragStart = useCallback((event: React.PointerEvent | React.TouchEvent | React.MouseEvent) => {
+        event.preventDefault();
+        event.stopPropagation();
+        toggleActionPanel(null, false);
+        onStartDrag?.(event);
+    }, [toggleActionPanel, onStartDrag]);
+
     return (
         <>
             {!showEditNamePanel ? <div className="content">
+                <div
+                    title="גרור"
+                    className="drag-btn"
+                    onPointerDown={handleDragStart}
+                    onTouchStart={handleDragStart as any}
+                >
+                    <FaGripVertical className="btn" />
+                </div>
                 <div title="ערוך" onClick={toggleShowEditNamePanel}>
                     <MdEdit className="btn" size={18} />
                 </div>

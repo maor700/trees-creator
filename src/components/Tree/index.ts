@@ -18,4 +18,5 @@ export interface ActionPanelProps {
     hasChildren?: boolean,
     toggleRow?: (ev:any, force?: boolean) => void,
     onOpenDetails?: () => void,
+    onStartDrag?: (event: React.PointerEvent | React.TouchEvent | React.MouseEvent) => void,
 }

@@ -10,6 +10,7 @@ import { ModalJunior } from "../../ModalJunior/ModalJunior";
 import { ItemDetailsModal } from "../../ItemDetailsModal";
 import { treeCtx } from "../Tree";
 import { ORIGINS } from "../";
+import { useDnd } from "../../../contexts/DndContext";
 import "./NodeRow.scss";
 
 const STATUS_OPTIONS: { value: TreeItemStatus; label: string; color: string }[] = [
@@ -28,6 +29,11 @@ export const NodeRow: FC<{ treeItem: TreeItem<TreeItemData>, childrenItems: Tree
     const [hasChildren, setHasChildren] = useState(false);
     const [origin, setOrigin] = useState<ORIGINS>(ORIGINS.TREE_NODE);
     const [itemData, setItemData] = useState<TreeItemData>(data || {});
+    const { startDrag, dragState } = useDnd();
+
+    const handleStartDrag = useCallback((event: React.PointerEvent | React.TouchEvent | React.MouseEvent) => {
+        startDrag(treeItem, event);
+    }, [startDrag, treeItem]);
 
     // Sync itemData when treeItem.data changes
     useEffect(() => {
@@ -153,6 +159,7 @@ export const NodeRow: FC<{ treeItem: TreeItem<TreeItemData>, childrenItems: Tree
                                         hasChildren={hasChildren}
                                         toggleRow={toggleChildren}
                                         onOpenDetails={() => toggleDetailsModal(null, true)}
+                                        onStartDrag={handleStartDrag}
                                     />
                                 </ModalJunior>
                             </div>

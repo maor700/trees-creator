@@ -21,7 +21,8 @@ export const CategoryTree: FC<OwnProps> = ({ treeData }) => {
 
         return from(liveQuery(async () => {
             const children = (await (await treesDB.getNodeChildrenCollection(treeItem.id as string))?.toArray() ?? [])
-            return children as TreeItem[];
+            // Sort children by order field
+            return (children as TreeItem[]).sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
         }))
     }, [treesDB]);
 
