@@ -10,6 +10,7 @@ import { ModalJunior } from "../ModalJunior/ModalJunior";
 import { MdSave, MdDelete, MdAdd } from "react-icons/md"
 import { VscSaveAs } from "react-icons/vsc";
 import { useAuth } from "../../contexts/AuthContext";
+import logoSrc from "../../assets/logo.svg";
 import "./NavBar.scss";
 
 
@@ -71,7 +72,10 @@ export const NavBar = () => {
 
     return (
         <nav>
-            <h1>Tree Creator</h1>
+            <div className="brand">
+                <img src={logoSrc} alt="DueTo Logo" className="logo" />
+                <h1>DueTo</h1>
+            </div>
             <div className="document">
                 <Blurred onBlur={(ev) => toggle(ev, false)} shouldBlur={isToggled} excludedElements={saveAsBtnRef.current ? [saveAsBtnRef.current] : []}>
                     <ModalJunior show={isToggled}>

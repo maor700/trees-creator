@@ -35,8 +35,8 @@ function App() {
         <div className="trees-con">
           {!user ? (
             <div className="login-prompt">
-              <h2>Welcome to Trees Creator</h2>
-              <p>Please login to view and manage your trees.</p>
+              <h2>Welcome to DueTo</h2>
+              <p>Please login to view and manage your tasks.</p>
             </div>
           ) : (
             (trees ?? []).map(tree => <CategoryTree key={tree.id} treeData={tree} />)

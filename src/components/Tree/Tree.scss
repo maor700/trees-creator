@@ -24,6 +24,22 @@
             min-width: 0;
             font-weight: normal;
         }
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 0.25em;
+            flex-shrink: 0;
+        }
+        .add-item-btn {
+            display: inline-flex;
+            align-items: center;
+            cursor: pointer;
+            padding: 0.25em;
+            border-radius: 4px;
+            &:hover {
+                background: rgba(255, 255, 255, 0.1);
+            }
+        }
         .actions-panel {
             position: relative;
             display: inline-flex;

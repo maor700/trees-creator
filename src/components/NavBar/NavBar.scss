@@ -1,5 +1,23 @@
 .app-con {
     nav {
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 0.5em;
+            margin-inline: 0.5em;
+
+            .logo {
+                width: 32px;
+                height: 32px;
+            }
+
+            h1 {
+                margin: 0;
+                font-size: 1.4em;
+                padding: 0;
+            }
+        }
+
         .document {
             position: relative;
             display: flex;
