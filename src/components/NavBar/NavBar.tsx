@@ -83,55 +83,55 @@ export const NavBar = () => {
                 <h1>DueTo</h1>
             </div>
 
-            {/* Desktop Layout */}
-            <div className="desktop-nav">
-                <div className="document">
-                    <div className="view-toggle">
-                        <div
-                            className={`btn primary ${viewMode === 'tree' ? 'active' : ''}`}
-                            onClick={() => treesDB.setAppPropVal('viewMode', 'tree')}
-                            title="Tree View"
-                        >
-                            <BsListNested />
-                        </div>
-                        <div
-                            className={`btn primary ${viewMode === 'status' ? 'active' : ''}`}
-                            onClick={() => treesDB.setAppPropVal('viewMode', 'status')}
-                            title="Status View"
-                        >
-                            <BsKanban />
-                        </div>
-                    </div>
-                    <Blurred onBlur={(ev) => toggle(ev, false)} shouldBlur={isToggled} excludedElements={saveAsBtnRef.current ? [saveAsBtnRef.current] : []}>
-                        <ModalJunior show={isToggled}>
-                            <EditPanel placeholder="Name of document" value={selectedState?.stateName ? selectedState?.stateName + "-copy" : ""} onSubmit={saveAs} onCancel={() => toggle(null, false)} />
-                        </ModalJunior>
-                    </Blurred>
-                    <select value={selectedState?.id} name="document-select" id="document-select" className="btn primary" onChange={onSelectChanched}>
-                        {(states ?? []).map(_ => (
-                            <option className={`${selectedState?.id === _.id ? "selcted" : ""}`} key={_.id} value={_.id}>{_.stateName}</option>
-                        ))}
-                    </select>
-                    <div title="save document (ctrl+S)" onClick={() => appIsDirt && save()} className={`btn primary ${!appIsDirt ? 'disable' : ''}`}><MdSave size="1.2em" /></div>
-                    <div ref={saveAsBtnRef} onClick={toggle} title="Save as" className={`btn primary`}><VscSaveAs size="1.2em" /></div>
-                    <div onClick={addTree} title={`${maxAchived ? `Limited to ${MAX_TREES} trees. Please first delete a tree in order to be able to add another ` : 'Add a new tree'}`} className={`btn primary ${maxAchived ? 'disable' : ""}`}>{<MdAdd size="1.2em" />}</div>
-                    <div onClick={deleteDocument} title={selectedState?.stateName ? `Delete Document ${selectedState.stateName}` : 'No document selected'} className={`btn primary ${!selectedState?.id ? 'disable' : ''}`}>{<MdDelete size="1.2em" />}</div>
-                </div>
-                <div className="nav-panel">
+            {/* Document buttons - hidden on mobile */}
+            <div className="document">
+                <div className="view-toggle">
                     <div
-                        className="btn primary"
-                        onClick={toggleSettings}
-                        title="Settings"
+                        className={`btn primary ${viewMode === 'tree' ? 'active' : ''}`}
+                        onClick={() => treesDB.setAppPropVal('viewMode', 'tree')}
+                        title="Tree View"
                     >
-                        <BsGearFill />
+                        <BsListNested />
                     </div>
-                    {user ?
-                        <div title={`Signed in as: ${user.email}`} className="loggedIn">
-                            <div onClick={logout} className={`btn primary`}>Logout</div>
-                        </div>
-                        : <div onClick={login} className={`btn primary`}>Login</div>
-                    }
+                    <div
+                        className={`btn primary ${viewMode === 'status' ? 'active' : ''}`}
+                        onClick={() => treesDB.setAppPropVal('viewMode', 'status')}
+                        title="Status View"
+                    >
+                        <BsKanban />
+                    </div>
                 </div>
+                <Blurred onBlur={(ev) => toggle(ev, false)} shouldBlur={isToggled} excludedElements={saveAsBtnRef.current ? [saveAsBtnRef.current] : []}>
+                    <ModalJunior show={isToggled}>
+                        <EditPanel placeholder="Name of document" value={selectedState?.stateName ? selectedState?.stateName + "-copy" : ""} onSubmit={saveAs} onCancel={() => toggle(null, false)} />
+                    </ModalJunior>
+                </Blurred>
+                <select value={selectedState?.id} name="document-select" id="document-select" className="btn primary" onChange={onSelectChanched}>
+                    {(states ?? []).map(_ => (
+                        <option className={`${selectedState?.id === _.id ? "selcted" : ""}`} key={_.id} value={_.id}>{_.stateName}</option>
+                    ))}
+                </select>
+                <div title="save document (ctrl+S)" onClick={() => appIsDirt && save()} className={`btn primary ${!appIsDirt ? 'disable' : ''}`}><MdSave size="1.2em" /></div>
+                <div ref={saveAsBtnRef} onClick={toggle} title="Save as" className={`btn primary`}><VscSaveAs size="1.2em" /></div>
+                <div onClick={addTree} title={`${maxAchived ? `Limited to ${MAX_TREES} trees. Please first delete a tree in order to be able to add another ` : 'Add a new tree'}`} className={`btn primary ${maxAchived ? 'disable' : ""}`}>{<MdAdd size="1.2em" />}</div>
+                <div onClick={deleteDocument} title={selectedState?.stateName ? `Delete Document ${selectedState.stateName}` : 'No document selected'} className={`btn primary ${!selectedState?.id ? 'disable' : ''}`}>{<MdDelete size="1.2em" />}</div>
+            </div>
+
+            {/* Nav panel - hidden on mobile */}
+            <div className="nav-panel">
+                <div
+                    className="btn primary"
+                    onClick={toggleSettings}
+                    title="Settings"
+                >
+                    <BsGearFill />
+                </div>
+                {user ?
+                    <div title={`Signed in as: ${user.email}`} className="loggedIn">
+                        <div onClick={logout} className={`btn primary`}>Logout</div>
+                    </div>
+                    : <div onClick={login} className={`btn primary`}>Login</div>
+                }
             </div>
 
             {/* Mobile Hamburger */}

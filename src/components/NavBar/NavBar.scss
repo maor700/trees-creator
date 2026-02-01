@@ -18,38 +18,36 @@
             }
         }
 
-        // Desktop navigation - visible on desktop, hidden on mobile
-        .desktop-nav {
+        // Document buttons - center section, hidden on mobile
+        .document {
+            position: relative;
             display: flex;
             align-items: center;
-            flex: 1;
-            justify-content: space-between;
+            justify-content: center;
+            align-content: center;
 
             @media (max-width: 768px) {
                 display: none;
             }
 
-            .document {
-                position: relative;
+            .view-toggle {
                 display: flex;
-                align-items: center;
-                justify-content: center;
-                align-content: center;
+                gap: 0.25em;
+                margin-inline-end: 1em;
 
-                .view-toggle {
-                    display: flex;
-                    gap: 0.25em;
-                    margin-inline-end: 1em;
-
-                    .btn.active {
-                        background-color: #4b8062;
-                    }
+                .btn.active {
+                    background-color: #4b8062;
                 }
             }
+        }
 
-            .nav-panel {
-                display: flex;
-                align-items: center;
+        // Nav panel - right section, hidden on mobile
+        .nav-panel {
+            display: flex;
+            align-items: center;
+
+            @media (max-width: 768px) {
+                display: none;
             }
         }
 
