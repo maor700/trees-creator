@@ -9,7 +9,8 @@ import { Blurred } from "../Blurred/Blurred";
 import { ModalJunior } from "../ModalJunior/ModalJunior";
 import { MdSave, MdDelete, MdAdd } from "react-icons/md"
 import { VscSaveAs } from "react-icons/vsc";
-import { BsListNested, BsKanban, BsTextLeft, BsTextRight } from "react-icons/bs";
+import { BsListNested, BsKanban, BsGearFill } from "react-icons/bs";
+import { SettingsModal } from "../SettingsModal/SettingsModal";
 import { useAuth } from "../../contexts/AuthContext";
 import logoSrc from "../../assets/logo.svg";
 import "./NavBar.scss";
@@ -23,7 +24,7 @@ export const NavBar = () => {
     const saveAsBtnRef = useRef<HTMLDivElement>(null);
     const selectedState = useLiveQuery<TreesStates>(async () => (await treesDB.getAppPropVal("selectedState")), [])
     const viewMode = useLiveQuery<'tree' | 'status'>(() => treesDB.getAppPropVal('viewMode'), [], 'tree');
-    const isRtl = useLiveQuery<boolean>(() => treesDB.getAppPropVal('isRtl'), [], false);
+    const [showSettings, toggleSettings] = useToggle(false);
 
     useEffect(() => {
         const ctrl_s_handler = (e: any) => {
@@ -98,11 +99,12 @@ export const NavBar = () => {
                 </div>
                 <div
                     className="btn primary"
-                    onClick={() => treesDB.setAppPropVal('isRtl', !isRtl)}
-                    title={isRtl ? 'Switch to LTR' : 'Switch to RTL'}
+                    onClick={toggleSettings}
+                    title="Settings"
                 >
-                    {isRtl ? <BsTextLeft /> : <BsTextRight />}
+                    <BsGearFill />
                 </div>
+                {showSettings && <SettingsModal onClose={() => toggleSettings(null, false)} />}
                 <Blurred onBlur={(ev) => toggle(ev, false)} shouldBlur={isToggled} excludedElements={saveAsBtnRef.current ? [saveAsBtnRef.current] : []}>
                     <ModalJunior show={isToggled}>
                         <EditPanel placeholder="Name of document" value={selectedState?.stateName ? selectedState?.stateName + "-copy" : ""} onSubmit={saveAs} onCancel={() => toggle(null, false)} />
