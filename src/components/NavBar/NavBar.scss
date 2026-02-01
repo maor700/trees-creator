@@ -18,6 +18,86 @@
             }
         }
 
+        .hamburger-container {
+            position: relative;
+            display: flex;
+            align-items: center;
+
+            .hamburger-btn {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }
+
+            .hamburger-menu {
+                position: absolute;
+                top: 100%;
+                right: 0;
+                background: #1e1e1e;
+                border-radius: 8px;
+                min-width: 280px;
+                box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+                z-index: 1000;
+                display: none;
+                flex-direction: column;
+                padding: 0.5em;
+                margin-top: 0.5em;
+
+                &.open {
+                    display: flex;
+                }
+
+                .menu-section {
+                    padding: 0.5em;
+                    border-bottom: 1px solid #333;
+
+                    &:last-child {
+                        border-bottom: none;
+                    }
+
+                    .menu-section-title {
+                        font-size: 0.75em;
+                        text-transform: uppercase;
+                        letter-spacing: 0.05em;
+                        color: rgba(255, 255, 255, 0.5);
+                        margin-bottom: 0.5em;
+                        padding: 0 0.5em;
+                    }
+
+                    .menu-row {
+                        display: flex;
+                        flex-wrap: wrap;
+                        gap: 0.25em;
+                    }
+
+                    .menu-select {
+                        width: 100%;
+                        margin-bottom: 0.5em;
+                    }
+
+                    .btn {
+                        display: flex;
+                        align-items: center;
+                        gap: 0.5em;
+                        margin: 0.25em;
+                        padding: 0.5em 0.75em;
+                        flex: 1;
+                        min-width: fit-content;
+                        justify-content: center;
+
+                        span {
+                            font-size: 0.85em;
+                        }
+
+                        &.active {
+                            background-color: #4b8062;
+                        }
+                    }
+                }
+            }
+        }
+
+        // Legacy styles (can be removed if not used)
         .document {
             position: relative;
             display: flex;
