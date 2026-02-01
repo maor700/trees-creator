@@ -113,18 +113,21 @@ body {
         background-color: rgba(20, 20, 20, 0.829);
         outline: 1px solid rgb(24, 24, 24);
     }
-    .rtl.tree-con {
+    &.rtl {
         direction: rtl;
-        .pipe-v {
-            border: 1px solid #505050;
-            border-left: none;
-        }
-        .pipe-h {
-            right: -0.5em;
-            left: unset;
-        }
-        .collapsser-con {
-            border-radius: 0 0.3em 0.3em 0;
+
+        .tree-con {
+            .pipe-v {
+                border: 1px solid #505050;
+                border-left: none;
+            }
+            .pipe-h {
+                right: -0.5em;
+                left: unset;
+            }
+            .collapsser-con {
+                border-radius: 0 0.3em 0.3em 0;
+            }
         }
     }
     .nav-panel {

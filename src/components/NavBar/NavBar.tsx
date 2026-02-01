@@ -9,7 +9,7 @@ import { Blurred } from "../Blurred/Blurred";
 import { ModalJunior } from "../ModalJunior/ModalJunior";
 import { MdSave, MdDelete, MdAdd } from "react-icons/md"
 import { VscSaveAs } from "react-icons/vsc";
-import { BsListNested, BsKanban } from "react-icons/bs";
+import { BsListNested, BsKanban, BsTextLeft, BsTextRight } from "react-icons/bs";
 import { useAuth } from "../../contexts/AuthContext";
 import logoSrc from "../../assets/logo.svg";
 import "./NavBar.scss";
@@ -23,6 +23,7 @@ export const NavBar = () => {
     const saveAsBtnRef = useRef<HTMLDivElement>(null);
     const selectedState = useLiveQuery<TreesStates>(async () => (await treesDB.getAppPropVal("selectedState")), [])
     const viewMode = useLiveQuery<'tree' | 'status'>(() => treesDB.getAppPropVal('viewMode'), [], 'tree');
+    const isRtl = useLiveQuery<boolean>(() => treesDB.getAppPropVal('isRtl'), [], false);
 
     useEffect(() => {
         const ctrl_s_handler = (e: any) => {
@@ -94,6 +95,13 @@ export const NavBar = () => {
                     >
                         <BsKanban />
                     </div>
+                </div>
+                <div
+                    className="btn primary"
+                    onClick={() => treesDB.setAppPropVal('isRtl', !isRtl)}
+                    title={isRtl ? 'Switch to LTR' : 'Switch to RTL'}
+                >
+                    {isRtl ? <BsTextLeft /> : <BsTextRight />}
                 </div>
                 <Blurred onBlur={(ev) => toggle(ev, false)} shouldBlur={isToggled} excludedElements={saveAsBtnRef.current ? [saveAsBtnRef.current] : []}>
                     <ModalJunior show={isToggled}>

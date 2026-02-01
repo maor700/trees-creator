@@ -12,7 +12,7 @@ import { EditPanel } from "./EditPanel/EditPanel";
 export const TreeActionsPanel: FC<ActionPanelProps> = ({ toggleActionPanel, treeData }) => {
     const [showEditNamePanel, toggleShowEditNamePanel] = useToggle(false);
     if (!treeData) return null;
-    const { id, treeName, rtl, lightMode, multiSelect } = treeData;
+    const { id, treeName, lightMode, multiSelect } = treeData;
 
     if (id === undefined) return null;
 
@@ -53,7 +53,6 @@ export const TreeActionsPanel: FC<ActionPanelProps> = ({ toggleActionPanel, tree
                 <div title={`${multiSelect ? 'hide' : 'show'} multiselect`}>
                     <BiSelectMultiple onClick={() => updateTree(id, { multiSelect: !multiSelect })} className="btn" />
                 </div>
-                <div onClick={() => updateTree(id, { rtl: !rtl })} className="btn">{rtl ? "LTR" : "RTL"}</div>
             </div>
                 : <EditPanel value={treeName} onSubmit={editTreeName} onCancel={() => toggleShowEditNamePanel(null, false)} />
             }

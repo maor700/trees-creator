@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__trello__get_lists",
+      "mcp__trello__add_card_to_list",
+      "Bash(npm run build:*)",
+      "Bash(npx eslint:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git push)"
+    ]
+  }
+}

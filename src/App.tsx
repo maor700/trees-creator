@@ -24,11 +24,17 @@ function App() {
     'tree'
   );
 
+  const isRtl = useLiveQuery<boolean>(
+    () => treesDB.getAppPropVal('isRtl'),
+    [],
+    false
+  );
+
   // Dexie Cloud handles sync automatically - no manual sync needed!
 
   if (loading) {
     return (
-      <div className="app-con">
+      <div className={`app-con ${isRtl ? 'rtl' : ''}`}>
         <NavBar />
         <div className="loading">Loading...</div>
       </div>
@@ -37,7 +43,7 @@ function App() {
 
   return (
     <DndProvider>
-      <div className="app-con">
+      <div className={`app-con ${isRtl ? 'rtl' : ''}`}>
         <NavBar />
         <div className="trees-con">
           {!user ? (
