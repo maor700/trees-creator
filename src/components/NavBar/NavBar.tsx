@@ -9,6 +9,7 @@ import { Blurred } from "../Blurred/Blurred";
 import { ModalJunior } from "../ModalJunior/ModalJunior";
 import { MdSave, MdDelete, MdAdd } from "react-icons/md"
 import { VscSaveAs } from "react-icons/vsc";
+import { BsListNested, BsKanban } from "react-icons/bs";
 import { useAuth } from "../../contexts/AuthContext";
 import logoSrc from "../../assets/logo.svg";
 import "./NavBar.scss";
@@ -21,6 +22,7 @@ export const NavBar = () => {
     const [isToggled, toggle] = useToggle(false);
     const saveAsBtnRef = useRef<HTMLDivElement>(null);
     const selectedState = useLiveQuery<TreesStates>(async () => (await treesDB.getAppPropVal("selectedState")), [])
+    const viewMode = useLiveQuery<'tree' | 'status'>(() => treesDB.getAppPropVal('viewMode'), [], 'tree');
 
     useEffect(() => {
         const ctrl_s_handler = (e: any) => {
@@ -77,6 +79,22 @@ export const NavBar = () => {
                 <h1>DueTo</h1>
             </div>
             <div className="document">
+                <div className="view-toggle">
+                    <div
+                        className={`btn primary ${viewMode === 'tree' ? 'active' : ''}`}
+                        onClick={() => treesDB.setAppPropVal('viewMode', 'tree')}
+                        title="Tree View"
+                    >
+                        <BsListNested />
+                    </div>
+                    <div
+                        className={`btn primary ${viewMode === 'status' ? 'active' : ''}`}
+                        onClick={() => treesDB.setAppPropVal('viewMode', 'status')}
+                        title="Status View"
+                    >
+                        <BsKanban />
+                    </div>
+                </div>
                 <Blurred onBlur={(ev) => toggle(ev, false)} shouldBlur={isToggled} excludedElements={saveAsBtnRef.current ? [saveAsBtnRef.current] : []}>
                     <ModalJunior show={isToggled}>
                         <EditPanel placeholder="Name of document" value={selectedState?.stateName ? selectedState?.stateName + "-copy" : ""} onSubmit={saveAs} onCancel={() => toggle(null, false)} />

@@ -1,0 +1,195 @@
+.status-view {
+  display: flex;
+  gap: 1em;
+  padding: 1em;
+  overflow-x: auto;
+  min-height: calc(100vh - 60px);
+  align-items: flex-start;
+
+  .status-column {
+    flex: 1;
+    min-width: 250px;
+    max-width: 350px;
+    background: #1e1e1e;
+    border-radius: 8px;
+    display: flex;
+    flex-direction: column;
+
+    .column-header {
+      padding: 0.75em 1em;
+      border-bottom: 3px solid;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+
+      .column-title {
+        font-weight: 600;
+        font-size: 0.9em;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: #ffffff;
+      }
+
+      .column-count {
+        background: rgba(255, 255, 255, 0.1);
+        padding: 0.2em 0.6em;
+        border-radius: 10px;
+        font-size: 0.8em;
+        color: #ffffff;
+      }
+    }
+
+    .column-content {
+      padding: 0.5em;
+      flex: 1;
+      min-height: 100px;
+      transition: background-color 0.2s ease;
+
+      &.drag-over {
+        background: rgba(255, 255, 255, 0.05);
+      }
+    }
+  }
+
+  .tree-group {
+    margin-bottom: 1em;
+
+    .tree-group-header {
+      font-size: 0.75em;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: rgba(255, 255, 255, 0.7);
+      padding: 0.5em 0.5em 0.25em;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      margin-bottom: 0.5em;
+    }
+  }
+
+  .status-card {
+    background: #3a3a3a;
+    border-radius: 6px;
+    padding: 0.75em;
+    margin-bottom: 0.5em;
+    cursor: pointer;
+    transition: background-color 0.2s ease, transform 0.1s ease;
+    user-select: none;
+    position: relative;
+
+    &:hover {
+      background: #454545;
+
+      .card-actions {
+        opacity: 1;
+      }
+    }
+
+    &:active {
+      transform: scale(0.98);
+    }
+
+    &.dragging {
+      opacity: 0.5;
+    }
+
+    .card-breadcrumb {
+      font-size: 0.75em;
+      color: rgba(255, 255, 255, 0.5);
+      margin-bottom: 0.25em;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 100%;
+    }
+
+    .card-content {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 0.5em;
+    }
+
+    .card-name {
+      font-size: 0.95em;
+      word-break: break-word;
+      color: #ffffff;
+      flex: 1;
+      cursor: grab;
+
+      &:active {
+        cursor: grabbing;
+      }
+    }
+
+    .card-actions {
+      display: flex;
+      gap: 0.25em;
+      opacity: 0;
+      transition: opacity 0.2s ease;
+      flex-shrink: 0;
+    }
+
+    .card-action-btn {
+      background: rgba(255, 255, 255, 0.1);
+      border: none;
+      border-radius: 4px;
+      padding: 0.35em;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #ffffff;
+      transition: background-color 0.2s ease;
+
+      &:hover {
+        background: rgba(255, 255, 255, 0.2);
+      }
+
+      &.status-btn {
+        width: 20px;
+        height: 20px;
+        padding: 0;
+        border-radius: 50%;
+      }
+    }
+
+    // Actions panel styles (from ModalJunior)
+    .content {
+      display: flex;
+      gap: 0.5em;
+      background: #2d2d2d;
+      border-radius: 6px;
+
+      > div {
+        cursor: pointer;
+        padding: 0.25em;
+        border-radius: 4px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+
+        &:hover {
+          background: rgba(255, 255, 255, 0.1);
+        }
+
+        .btn {
+          color: #ffffff;
+        }
+      }
+
+      .drag-btn {
+        cursor: grab;
+
+        &:active {
+          cursor: grabbing;
+        }
+      }
+    }
+  }
+
+  .empty-column {
+    text-align: center;
+    color: rgba(255, 255, 255, 0.5);
+    font-size: 0.85em;
+    padding: 2em 1em;
+  }
+}

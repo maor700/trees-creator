@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useCallback, useEffect, useRef, ReactNode } from 'react';
 import { TreeItem } from '../models/TreeItem';
+import { TreeItemStatus } from '../models/TreeItemData';
 import { treesDB } from '../models/treesDb';
 
 interface DragState {
@@ -15,6 +16,8 @@ interface DropZoneInfo {
   id: string;
   position: 'before' | 'after' | 'inside';
   item: TreeItem;
+  type?: 'tree' | 'status';
+  targetStatus?: TreeItemStatus;
 }
 
 interface DndContextValue {
@@ -150,6 +153,17 @@ export const DndProvider: React.FC<DndProviderProps> = ({ children }) => {
 
   const performDrop = useCallback(async (draggedItem: TreeItem, dropInfo: DropZoneInfo) => {
     const { position, item: overItem } = dropInfo;
+
+    // Handle status column drops
+    if (dropInfo.type === 'status' && dropInfo.targetStatus) {
+      const newData = {
+        ...draggedItem.data,
+        status: dropInfo.targetStatus,
+        lastModified: new Date().toISOString(),
+      };
+      await treesDB.treesItems.update(draggedItem.id, { data: newData });
+      return;
+    }
 
     if (draggedItem.id === overItem.id) {
       return;

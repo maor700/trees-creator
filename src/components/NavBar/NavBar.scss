@@ -24,6 +24,16 @@
             align-items: center;
             justify-content: center;
             align-content: center;
+
+            .view-toggle {
+                display: flex;
+                gap: 0.25em;
+                margin-right: 1em;
+
+                .btn.active {
+                    background-color: #4b8062;
+                }
+            }
         }
     }
 }
