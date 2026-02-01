@@ -97,14 +97,6 @@ export const NavBar = () => {
                         <BsKanban />
                     </div>
                 </div>
-                <div
-                    className="btn primary"
-                    onClick={toggleSettings}
-                    title="Settings"
-                >
-                    <BsGearFill />
-                </div>
-                {showSettings && <SettingsModal onClose={() => toggleSettings(null, false)} />}
                 <Blurred onBlur={(ev) => toggle(ev, false)} shouldBlur={isToggled} excludedElements={saveAsBtnRef.current ? [saveAsBtnRef.current] : []}>
                     <ModalJunior show={isToggled}>
                         <EditPanel placeholder="Name of document" value={selectedState?.stateName ? selectedState?.stateName + "-copy" : ""} onSubmit={saveAs} onCancel={() => toggle(null, false)} />
@@ -121,6 +113,14 @@ export const NavBar = () => {
                 <div onClick={deleteDocument} title={selectedState?.stateName ? `Delete Document ${selectedState.stateName}` : 'No document selected'} className={`btn primary ${!selectedState?.id ? 'disable' : ''}`}>{<MdDelete size="1.2em" />}</div>
             </div>
             <div className="nav-panel">
+                <div
+                    className="btn primary"
+                    onClick={toggleSettings}
+                    title="Settings"
+                >
+                    <BsGearFill />
+                </div>
+                {showSettings && <SettingsModal onClose={() => toggleSettings(null, false)} />}
                 {user ?
                     <div title={`Signed in as: ${user.email}`} className="loggedIn">
                         <div onClick={logout} className={`btn primary`}>Logout</div>
