@@ -20,7 +20,7 @@ const STATUS_COLUMNS: { status: TreeItemStatus; label: string; color: string }[]
 
 export const StatusView: FC<StatusViewProps> = ({ trees }) => {
   // Get pinned column (default to 'in_progress')
-  const pinnedColumn = useLiveQuery<TreeItemStatus>(
+  const pinnedColumn = useLiveQuery<TreeItemStatus | null>(
     () => treesDB.getAppPropVal('pinnedStatusColumn'),
     [],
     'in_progress'
@@ -28,8 +28,13 @@ export const StatusView: FC<StatusViewProps> = ({ trees }) => {
 
   // Handle pin toggle
   const handlePinColumn = useCallback((status: TreeItemStatus) => {
-    treesDB.setAppPropVal('pinnedStatusColumn', status);
-  }, []);
+    // Toggle: if already pinned, unpin (set to null)
+    if (pinnedColumn === status) {
+      treesDB.setAppPropVal('pinnedStatusColumn', null);
+    } else {
+      treesDB.setAppPropVal('pinnedStatusColumn', status);
+    }
+  }, [pinnedColumn]);
   // Query all tree items
   const allItems = useLiveQuery<TreeItem<TreeItemData>[]>(
     () => treesDB.treesItems.toArray(),
