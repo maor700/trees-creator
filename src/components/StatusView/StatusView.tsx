@@ -1,4 +1,4 @@
-import { FC, useMemo } from 'react';
+import { FC, useMemo, useCallback } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { TreeClass } from '../../models/Tree';
 import { TreeItem } from '../../models/TreeItem';
@@ -19,6 +19,17 @@ const STATUS_COLUMNS: { status: TreeItemStatus; label: string; color: string }[]
 ];
 
 export const StatusView: FC<StatusViewProps> = ({ trees }) => {
+  // Get pinned column (default to 'in_progress')
+  const pinnedColumn = useLiveQuery<TreeItemStatus>(
+    () => treesDB.getAppPropVal('pinnedStatusColumn'),
+    [],
+    'in_progress'
+  );
+
+  // Handle pin toggle
+  const handlePinColumn = useCallback((status: TreeItemStatus) => {
+    treesDB.setAppPropVal('pinnedStatusColumn', status);
+  }, []);
   // Query all tree items
   const allItems = useLiveQuery<TreeItem<TreeItemData>[]>(
     () => treesDB.treesItems.toArray(),
@@ -55,9 +66,22 @@ export const StatusView: FC<StatusViewProps> = ({ trees }) => {
     return grouped;
   }, [allItems]);
 
+  // Sort columns with pinned one first (for mobile)
+  const sortedColumns = useMemo(() => {
+    const columns = [...STATUS_COLUMNS];
+    if (pinnedColumn) {
+      columns.sort((a, b) => {
+        if (a.status === pinnedColumn) return -1;
+        if (b.status === pinnedColumn) return 1;
+        return 0;
+      });
+    }
+    return columns;
+  }, [pinnedColumn]);
+
   return (
     <div className="status-view">
-      {STATUS_COLUMNS.map(({ status, label, color }) => (
+      {sortedColumns.map(({ status, label, color }) => (
         <StatusColumn
           key={status}
           status={status}
@@ -66,6 +90,8 @@ export const StatusView: FC<StatusViewProps> = ({ trees }) => {
           items={itemsByStatus[status]}
           trees={trees}
           itemsById={itemsById}
+          isPinned={pinnedColumn === status}
+          onPin={handlePinColumn}
         />
       ))}
     </div>

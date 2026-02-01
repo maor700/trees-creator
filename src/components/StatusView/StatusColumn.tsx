@@ -1,4 +1,5 @@
-import { FC, useEffect, useRef, useMemo } from 'react';
+import { FC, useEffect, useRef, useMemo, useCallback } from 'react';
+import { BsPin, BsPinFill } from 'react-icons/bs';
 import { TreeItem } from '../../models/TreeItem';
 import { TreeItemData, TreeItemStatus } from '../../models/TreeItemData';
 import { TreeClass } from '../../models/Tree';
@@ -12,6 +13,8 @@ interface StatusColumnProps {
   items: TreeItem<TreeItemData>[];
   trees: TreeClass[];
   itemsById: Map<string, TreeItem>;
+  isPinned?: boolean;
+  onPin?: (status: TreeItemStatus) => void;
 }
 
 export const StatusColumn: FC<StatusColumnProps> = ({
@@ -21,6 +24,8 @@ export const StatusColumn: FC<StatusColumnProps> = ({
   items,
   trees,
   itemsById,
+  isPinned,
+  onPin,
 }) => {
   const { registerDropZone, unregisterDropZone, dragState } = useDnd();
   const columnRef = useRef<HTMLDivElement>(null);
@@ -72,11 +77,26 @@ export const StatusColumn: FC<StatusColumnProps> = ({
   // Check if we're dragging over this column
   const isDragOver = dragState.isDragging && dragState.overId === dropZoneId;
 
+  const handlePinClick = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+    onPin?.(status);
+  }, [onPin, status]);
+
   return (
-    <div className="status-column">
+    <div className={`status-column ${isPinned ? 'pinned' : ''}`}>
       <div className="column-header" style={{ borderColor: color }}>
         <span className="column-title">{label}</span>
-        <span className="column-count">{items.length}</span>
+        <div className="column-header-actions">
+          <button
+            type="button"
+            className={`pin-btn ${isPinned ? 'pinned' : ''}`}
+            onClick={handlePinClick}
+            title={isPinned ? 'Pinned to top' : 'Pin to top'}
+          >
+            {isPinned ? <BsPinFill size={14} /> : <BsPin size={14} />}
+          </button>
+          <span className="column-count">{items.length}</span>
+        </div>
       </div>
       <div
         ref={columnRef}
