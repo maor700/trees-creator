@@ -56,6 +56,7 @@ export const DndProvider: React.FC<DndProviderProps> = ({ children }) => {
   const draggedItemRef = useRef<TreeItem | null>(null);
   const scrollIntervalRef = useRef<number | null>(null);
   const lastClientYRef = useRef<number>(0);
+  const lastClientXRef = useRef<number>(0);
   const listenersRef = useRef<{
     pointerMove: ((e: PointerEvent) => void) | null;
     pointerUp: ((e: PointerEvent) => void) | null;
@@ -82,11 +83,13 @@ export const DndProvider: React.FC<DndProviderProps> = ({ children }) => {
   const EDGE_THRESHOLD = 80; // pixels from edge to trigger scroll
   const SCROLL_SPEED = 8; // pixels per frame
 
-  const startAutoScroll = useCallback((clientY: number) => {
-    // Update the ref with current position
+  const startAutoScroll = useCallback((clientX: number, clientY: number) => {
+    // Update the refs with current position
+    lastClientXRef.current = clientX;
     lastClientYRef.current = clientY;
 
     const viewportHeight = window.innerHeight;
+    const viewportWidth = window.innerWidth;
 
     // If already scrolling, let the existing loop continue with updated ref
     if (scrollIntervalRef.current) {
@@ -94,24 +97,51 @@ export const DndProvider: React.FC<DndProviderProps> = ({ children }) => {
     }
 
     const scroll = () => {
-      // Read the latest clientY from ref
+      // Read the latest position from refs
+      const currentX = lastClientXRef.current;
       const currentY = lastClientYRef.current;
       const currentViewportHeight = window.innerHeight;
+      const currentViewportWidth = window.innerWidth;
 
-      // Find the scrollable container (trees-con)
-      const scrollContainer = document.querySelector('.trees-con') as HTMLElement;
+      // Find the scrollable containers
+      const treeContainer = document.querySelector('.trees-con') as HTMLElement;
+      const statusView = document.querySelector('.status-view') as HTMLElement;
 
+      let shouldContinue = false;
+
+      // Vertical scrolling (for both tree view and mobile status view)
       if (currentY < EDGE_THRESHOLD) {
         // Near top - scroll up
         const speed = SCROLL_SPEED * (1 - currentY / EDGE_THRESHOLD);
-        if (scrollContainer) scrollContainer.scrollTop -= speed;
+        if (treeContainer) treeContainer.scrollTop -= speed;
+        if (statusView) statusView.scrollTop -= speed;
         window.scrollBy(0, -speed);
+        shouldContinue = true;
       } else if (currentY > currentViewportHeight - EDGE_THRESHOLD) {
         // Near bottom - scroll down
         const speed = SCROLL_SPEED * (1 - (currentViewportHeight - currentY) / EDGE_THRESHOLD);
-        if (scrollContainer) scrollContainer.scrollTop += speed;
+        if (treeContainer) treeContainer.scrollTop += speed;
+        if (statusView) statusView.scrollTop += speed;
         window.scrollBy(0, speed);
-      } else {
+        shouldContinue = true;
+      }
+
+      // Horizontal scrolling (for desktop status view)
+      if (statusView) {
+        if (currentX < EDGE_THRESHOLD) {
+          // Near left - scroll left
+          const speed = SCROLL_SPEED * (1 - currentX / EDGE_THRESHOLD);
+          statusView.scrollLeft -= speed;
+          shouldContinue = true;
+        } else if (currentX > currentViewportWidth - EDGE_THRESHOLD) {
+          // Near right - scroll right
+          const speed = SCROLL_SPEED * (1 - (currentViewportWidth - currentX) / EDGE_THRESHOLD);
+          statusView.scrollLeft += speed;
+          shouldContinue = true;
+        }
+      }
+
+      if (!shouldContinue) {
         // Not near edges - stop scrolling
         scrollIntervalRef.current = null;
         return;
@@ -121,8 +151,11 @@ export const DndProvider: React.FC<DndProviderProps> = ({ children }) => {
       scrollIntervalRef.current = requestAnimationFrame(scroll);
     };
 
-    // Check if we're near an edge to start scrolling
-    if (clientY < EDGE_THRESHOLD || clientY > viewportHeight - EDGE_THRESHOLD) {
+    // Check if we're near any edge to start scrolling
+    const nearVerticalEdge = clientY < EDGE_THRESHOLD || clientY > viewportHeight - EDGE_THRESHOLD;
+    const nearHorizontalEdge = clientX < EDGE_THRESHOLD || clientX > viewportWidth - EDGE_THRESHOLD;
+
+    if (nearVerticalEdge || nearHorizontalEdge) {
       scrollIntervalRef.current = requestAnimationFrame(scroll);
     }
   }, []);
@@ -289,7 +322,7 @@ export const DndProvider: React.FC<DndProviderProps> = ({ children }) => {
       const dropInfo = findDropZoneAtPoint(clientX, clientY);
 
       // Trigger auto-scroll when near edges
-      startAutoScroll(clientY);
+      startAutoScroll(clientX, clientY);
 
       setDragState(prev => ({
         ...prev,
