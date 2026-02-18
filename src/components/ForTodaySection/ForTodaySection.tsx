@@ -99,6 +99,7 @@ export const ForTodaySection: FC = () => {
                 item={item}
                 itemsById={itemsById}
                 showRoot
+                showStatusBg
               />
             ))
           )}

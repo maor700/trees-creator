@@ -17,6 +17,7 @@ interface StatusCardProps {
   item: TreeItem<TreeItemData>;
   itemsById: Map<string, TreeItem>;
   showRoot?: boolean;
+  showStatusBg?: boolean;
 }
 
 const STATUS_OPTIONS: { value: TreeItemStatus; label: string; color: string }[] = [
@@ -26,7 +27,7 @@ const STATUS_OPTIONS: { value: TreeItemStatus; label: string; color: string }[] 
   { value: 'blocked', label: 'Blocked', color: '#ef4444' },
 ];
 
-export const StatusCard: FC<StatusCardProps> = ({ item, itemsById, showRoot }) => {
+export const StatusCard: FC<StatusCardProps> = ({ item, itemsById, showRoot, showStatusBg }) => {
   const { startDrag, dragState } = useDnd();
   const [showModal, setShowModal] = useState(false);
   const [showActionPanel, toggleActionPanel] = useToggle(false);
@@ -133,6 +134,7 @@ export const StatusCard: FC<StatusCardProps> = ({ item, itemsById, showRoot }) =
       <div
         className={`status-card ${isDragging ? 'dragging' : ''}`}
         onClick={handleClick}
+        style={showStatusBg ? { backgroundColor: `${currentStatus.color}22` } : undefined}
       >
         <Breadcrumb item={item} itemsById={itemsById} showRoot={showRoot} />
         <div className="card-content">

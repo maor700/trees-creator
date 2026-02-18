@@ -1,14 +1,14 @@
 .for-today-section {
   flex-basis: 100%;
-  background: #1a1a2e;
+  background: #1e1e1e;
   border-radius: 8px;
-  border: 1px solid #2a2a4a;
+  border: 1px solid #333;
   flex-shrink: 0;
   transition: border-color 0.2s ease;
 
   &.drag-over {
     border-color: #f59e0b;
-    background: #1f1f35;
+    background: #252525;
   }
 
   .for-today-header {
@@ -70,14 +70,8 @@
     gap: 0.5em;
 
     .status-card {
-      background: #2a2a4a;
-
       @media (max-width: 768px) {
         flex-basis: 100%;
-      }
-
-      &:hover {
-        background: #353560;
       }
     }
   }
