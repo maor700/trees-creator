@@ -16,6 +16,7 @@ import { EditPanel } from '../ActionsPanel/EditPanel/EditPanel';
 interface StatusCardProps {
   item: TreeItem<TreeItemData>;
   itemsById: Map<string, TreeItem>;
+  showRoot?: boolean;
 }
 
 const STATUS_OPTIONS: { value: TreeItemStatus; label: string; color: string }[] = [
@@ -25,7 +26,7 @@ const STATUS_OPTIONS: { value: TreeItemStatus; label: string; color: string }[] 
   { value: 'blocked', label: 'Blocked', color: '#ef4444' },
 ];
 
-export const StatusCard: FC<StatusCardProps> = ({ item, itemsById }) => {
+export const StatusCard: FC<StatusCardProps> = ({ item, itemsById, showRoot }) => {
   const { startDrag, dragState } = useDnd();
   const [showModal, setShowModal] = useState(false);
   const [showActionPanel, toggleActionPanel] = useToggle(false);
@@ -133,7 +134,7 @@ export const StatusCard: FC<StatusCardProps> = ({ item, itemsById }) => {
         className={`status-card ${isDragging ? 'dragging' : ''}`}
         onClick={handleClick}
       >
-        <Breadcrumb item={item} itemsById={itemsById} />
+        <Breadcrumb item={item} itemsById={itemsById} showRoot={showRoot} />
         <div className="card-content">
           <div className="card-name" onPointerDown={handlePointerDown}>{item.name}</div>
           <div className="card-actions">

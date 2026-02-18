@@ -4,17 +4,17 @@ import { TreeItem } from '../../models/TreeItem';
 interface BreadcrumbProps {
   item: TreeItem;
   itemsById: Map<string, TreeItem>;
+  showRoot?: boolean;
 }
 
-export const Breadcrumb: FC<BreadcrumbProps> = ({ item, itemsById }) => {
+export const Breadcrumb: FC<BreadcrumbProps> = ({ item, itemsById, showRoot }) => {
   const breadcrumbText = useMemo(() => {
     if (!item.parentPath) {
       return null;
     }
 
     const ancestorIds = item.parentPath.split('/').filter(Boolean);
-    // Skip first ancestor (root node) since items are grouped by tree
-    const relevantIds = ancestorIds.slice(1);
+    const relevantIds = showRoot ? ancestorIds : ancestorIds.slice(1);
 
     if (relevantIds.length === 0) {
       return null;
@@ -31,7 +31,7 @@ export const Breadcrumb: FC<BreadcrumbProps> = ({ item, itemsById }) => {
     }
 
     return ancestorNames.join(' > ');
-  }, [item.parentPath, itemsById]);
+  }, [item.parentPath, itemsById, showRoot]);
 
   const fullPathTooltip = useMemo(() => {
     if (!item.parentPath) {
@@ -39,8 +39,7 @@ export const Breadcrumb: FC<BreadcrumbProps> = ({ item, itemsById }) => {
     }
 
     const ancestorIds = item.parentPath.split('/').filter(Boolean);
-    // Skip first ancestor (root node)
-    const relevantIds = ancestorIds.slice(1);
+    const relevantIds = showRoot ? ancestorIds : ancestorIds.slice(1);
 
     if (relevantIds.length === 0) {
       return '';
@@ -52,7 +51,7 @@ export const Breadcrumb: FC<BreadcrumbProps> = ({ item, itemsById }) => {
     });
 
     return ancestorNames.join(' > ');
-  }, [item.parentPath, itemsById]);
+  }, [item.parentPath, itemsById, showRoot]);
 
   if (!breadcrumbText) {
     return null;

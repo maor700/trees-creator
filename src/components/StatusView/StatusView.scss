@@ -115,131 +115,132 @@
     }
   }
 
-  .status-card {
-    background: #3a3a3a;
-    border-radius: 6px;
-    padding: 0.75em;
-    margin-bottom: 0.5em;
+  .empty-column {
+    text-align: center;
+    color: rgba(255, 255, 255, 0.5);
+    font-size: 0.85em;
+    padding: 2em 1em;
+  }
+}
+
+// Status card — shared between StatusView and ForTodaySection
+.status-card {
+  background: #3a3a3a;
+  border-radius: 6px;
+  padding: 0.75em;
+  margin-bottom: 0.5em;
+  cursor: pointer;
+  transition: background-color 0.2s ease, transform 0.1s ease;
+  user-select: none;
+  position: relative;
+
+  &:hover {
+    background: #454545;
+
+    .card-actions {
+      opacity: 1;
+    }
+  }
+
+  &:active {
+    transform: scale(0.98);
+  }
+
+  &.dragging {
+    opacity: 0.5;
+  }
+
+  .card-breadcrumb {
+    font-size: 0.75em;
+    color: rgba(255, 255, 255, 0.5);
+    margin-bottom: 0.25em;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+  }
+
+  .card-content {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 0.5em;
+  }
+
+  .card-name {
+    font-size: 0.95em;
+    word-break: break-word;
+    color: #ffffff;
+    flex: 1;
+    cursor: grab;
+
+    &:active {
+      cursor: grabbing;
+    }
+  }
+
+  .card-actions {
+    display: flex;
+    gap: 0.25em;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+    flex-shrink: 0;
+  }
+
+  .card-action-btn {
+    background: rgba(255, 255, 255, 0.1);
+    border: none;
+    border-radius: 4px;
+    padding: 0.35em;
     cursor: pointer;
-    transition: background-color 0.2s ease, transform 0.1s ease;
-    user-select: none;
-    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #ffffff;
+    transition: background-color 0.2s ease;
 
     &:hover {
-      background: #454545;
+      background: rgba(255, 255, 255, 0.2);
+    }
 
-      .card-actions {
-        opacity: 1;
+    &.status-btn {
+      width: 20px;
+      height: 20px;
+      padding: 0;
+      border-radius: 50%;
+    }
+  }
+
+  // Actions panel styles (from ModalJunior)
+  .content {
+    display: flex;
+    gap: 0.5em;
+    background: #2d2d2d;
+    border-radius: 6px;
+
+    > div {
+      cursor: pointer;
+      padding: 0.25em;
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+
+      &:hover {
+        background: rgba(255, 255, 255, 0.1);
+      }
+
+      .btn {
+        color: #ffffff;
       }
     }
 
-    &:active {
-      transform: scale(0.98);
-    }
-
-    &.dragging {
-      opacity: 0.5;
-    }
-
-    .card-breadcrumb {
-      font-size: 0.75em;
-      color: rgba(255, 255, 255, 0.5);
-      margin-bottom: 0.25em;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      max-width: 100%;
-    }
-
-    .card-content {
-      display: flex;
-      align-items: flex-start;
-      justify-content: space-between;
-      gap: 0.5em;
-    }
-
-    .card-name {
-      font-size: 0.95em;
-      word-break: break-word;
-      color: #ffffff;
-      flex: 1;
+    .drag-btn {
       cursor: grab;
 
       &:active {
         cursor: grabbing;
       }
     }
-
-    .card-actions {
-      display: flex;
-      gap: 0.25em;
-      opacity: 0;
-      transition: opacity 0.2s ease;
-      flex-shrink: 0;
-    }
-
-    .card-action-btn {
-      background: rgba(255, 255, 255, 0.1);
-      border: none;
-      border-radius: 4px;
-      padding: 0.35em;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: #ffffff;
-      transition: background-color 0.2s ease;
-
-      &:hover {
-        background: rgba(255, 255, 255, 0.2);
-      }
-
-      &.status-btn {
-        width: 20px;
-        height: 20px;
-        padding: 0;
-        border-radius: 50%;
-      }
-    }
-
-    // Actions panel styles (from ModalJunior)
-    .content {
-      display: flex;
-      gap: 0.5em;
-      background: #2d2d2d;
-      border-radius: 6px;
-
-      > div {
-        cursor: pointer;
-        padding: 0.25em;
-        border-radius: 4px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-
-        &:hover {
-          background: rgba(255, 255, 255, 0.1);
-        }
-
-        .btn {
-          color: #ffffff;
-        }
-      }
-
-      .drag-btn {
-        cursor: grab;
-
-        &:active {
-          cursor: grabbing;
-        }
-      }
-    }
-  }
-
-  .empty-column {
-    text-align: center;
-    color: rgba(255, 255, 255, 0.5);
-    font-size: 0.85em;
-    padding: 2em 1em;
   }
 }

@@ -232,6 +232,69 @@
   }
 }
 
+// Date Section
+.date-section {
+  display: flex;
+  gap: 1.5em;
+  align-items: flex-end;
+
+  .date-field,
+  .for-today-field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5em;
+  }
+
+  .section-label {
+    display: block;
+    font-size: 0.85em;
+    font-weight: 500;
+    color: #888;
+  }
+
+  .date-input {
+    padding: 0.5em 0.75em;
+    font-size: 0.95em;
+    border: 2px solid #444;
+    border-radius: 0.35em;
+    background: #1e1e1e;
+    color: #eee;
+    cursor: pointer;
+    outline: none;
+    transition: border-color 0.15s ease;
+    color-scheme: dark;
+
+    &:focus {
+      border-color: #3b82f6;
+    }
+  }
+
+  .for-today-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4em;
+    padding: 0.5em 0.85em;
+    font-size: 0.9em;
+    border: 2px solid #444;
+    border-radius: 0.35em;
+    background: #1e1e1e;
+    color: #aaa;
+    cursor: pointer;
+    transition: all 0.15s ease;
+
+    &:hover {
+      border-color: #f59e0b;
+      color: #f59e0b;
+    }
+
+    &.active {
+      border-color: #f59e0b;
+      background: rgba(245, 158, 11, 0.15);
+      color: #f59e0b;
+    }
+  }
+}
+
 // Description Section
 .description-section {
   .section-header {
@@ -444,6 +507,40 @@
       option {
         background: #fff;
         color: #333;
+      }
+    }
+  }
+
+  .date-section {
+    .section-label {
+      color: #666;
+    }
+
+    .date-input {
+      background: #fff;
+      border-color: #ddd;
+      color: #333;
+      color-scheme: light;
+
+      &:focus {
+        border-color: #3b82f6;
+      }
+    }
+
+    .for-today-btn {
+      background: #fff;
+      border-color: #ddd;
+      color: #666;
+
+      &:hover {
+        border-color: #f59e0b;
+        color: #d97706;
+      }
+
+      &.active {
+        border-color: #f59e0b;
+        background: rgba(245, 158, 11, 0.1);
+        color: #d97706;
       }
     }
   }

@@ -21,5 +21,7 @@ export interface TreeItemData {
   status?: TreeItemStatus;
   attachments?: Attachment[];
   youtubeEmbeds?: YouTubeEmbed[];
+  dueDate?: string;               // ISO date string, e.g. "2026-02-18"
+  forToday?: boolean;
   lastModified?: string;
 }

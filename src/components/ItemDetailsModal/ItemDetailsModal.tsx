@@ -5,6 +5,7 @@ import { TreeItemData, TreeItemStatus, Attachment, YouTubeEmbed } from '../../mo
 import { treesDB } from '../../models/treesDb';
 import { TitleSection } from './TitleSection';
 import { StatusSection } from './StatusSection';
+import { DateSection } from './DateSection';
 import { DescriptionSection } from './DescriptionSection';
 import { AttachmentsSection } from './AttachmentsSection';
 import { YouTubeSection } from './YouTubeSection';
@@ -62,6 +63,20 @@ export const ItemDetailsModal: FC<ItemDetailsModalProps> = ({ treeItem, onClose 
   // Handle status change
   const handleStatusChange = useCallback((newStatus: TreeItemStatus) => {
     const newData = { ...itemData, status: newStatus };
+    setItemData(newData);
+    saveData(newData);
+  }, [itemData, saveData]);
+
+  // Handle due date change
+  const handleDueDateChange = useCallback((newDueDate: string) => {
+    const newData = { ...itemData, dueDate: newDueDate || undefined };
+    setItemData(newData);
+    saveData(newData);
+  }, [itemData, saveData]);
+
+  // Handle for today toggle
+  const handleForTodayToggle = useCallback(() => {
+    const newData = { ...itemData, forToday: !itemData.forToday };
     setItemData(newData);
     saveData(newData);
   }, [itemData, saveData]);
@@ -124,6 +139,13 @@ export const ItemDetailsModal: FC<ItemDetailsModalProps> = ({ treeItem, onClose 
           <StatusSection
             status={itemData.status || 'not_started'}
             onStatusChange={handleStatusChange}
+          />
+
+          <DateSection
+            dueDate={itemData.dueDate || ''}
+            forToday={!!itemData.forToday}
+            onDueDateChange={handleDueDateChange}
+            onForTodayToggle={handleForTodayToggle}
           />
 
           <DescriptionSection

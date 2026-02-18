@@ -16,7 +16,7 @@ interface DropZoneInfo {
   id: string;
   position: 'before' | 'after' | 'inside';
   item: TreeItem;
-  type?: 'tree' | 'status';
+  type?: 'tree' | 'status' | 'today';
   targetStatus?: TreeItemStatus;
 }
 
@@ -192,6 +192,17 @@ export const DndProvider: React.FC<DndProviderProps> = ({ children }) => {
       const newData = {
         ...draggedItem.data,
         status: dropInfo.targetStatus,
+        lastModified: new Date().toISOString(),
+      };
+      await treesDB.treesItems.update(draggedItem.id, { data: newData });
+      return;
+    }
+
+    // Handle "For Today" drops
+    if (dropInfo.type === 'today') {
+      const newData = {
+        ...draggedItem.data,
+        forToday: true,
         lastModified: new Date().toISOString(),
       };
       await treesDB.treesItems.update(draggedItem.id, { data: newData });

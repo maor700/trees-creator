@@ -3,6 +3,7 @@ import { treesDB } from './models/treesDb';
 import { TreeClass } from './models/Tree';
 import { CategoryTree } from './components/CategoryTree/CategoryTree';
 import { StatusView } from './components/StatusView/StatusView';
+import { ForTodaySection } from './components/ForTodaySection/ForTodaySection';
 import { NavBar } from './components/NavBar/NavBar';
 import { useAuth } from './contexts/AuthContext';
 import { DndProvider } from './contexts/DndContext';
@@ -51,10 +52,15 @@ function App() {
               <h2>Welcome to DueTo</h2>
               <p>Please login to view and manage your tasks.</p>
             </div>
-          ) : viewMode === 'status' ? (
-            <StatusView trees={trees ?? []} />
           ) : (
-            (trees ?? []).map(tree => <CategoryTree key={tree.id} treeData={tree} />)
+            <>
+              <ForTodaySection />
+              {viewMode === 'status' ? (
+                <StatusView trees={trees ?? []} />
+              ) : (
+                (trees ?? []).map(tree => <CategoryTree key={tree.id} treeData={tree} />)
+              )}
+            </>
           )}
         </div>
       </div>
